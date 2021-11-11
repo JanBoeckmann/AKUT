@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto|Varela+Round|Open+Sans">
+        <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+        <link rel="stylesheet" href="https://unpkg.com/bootstrap-table@1.15.4/dist/bootstrap-table.min.css">
+
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+
+        <!-- you need to include the ShieldUI CSS and JS assets in order for the Upload widget to work -->
+        <link rel="stylesheet" type="text/css" href="http://www.shieldui.com/shared/components/latest/css/light-bootstrap/all.min.css" />
+        <script type="text/javascript" src="http://www.shieldui.com/shared/components/latest/js/shieldui-all.min.js"></script>
+
+        <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+
+        <!-- ajax imports -->
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.0/jquery.min.js"></script>
+
+        <script src="{{ url_for('static', filename='js/modifyOptimizationParametersSaveToDatabase.js') }}"></script>
+
+        <script>
+            var mySavedData = JSON.parse('{{ parameters | tojson | safe}}');
+        </script>
+
+        <script>
+            $( document ).ready(function() {
+                $('#selectpickerRegion').on('change', function(e){
+                    var parametersForRegion = mySavedData[document.getElementById("selectpickerRegion").value];
+                    var optionsToBeAdded = '<option value="" selected disabled>Parameterkonfiguration wählen</option>';
+                    for (key in parametersForRegion) {
+                        optionsToBeAdded = optionsToBeAdded + '<option>' + key + '</option>'
+                    }
+                    $("#selectpickerParamId").html(optionsToBeAdded);
+                });
+            });
+        </script>
+
+        <script>
+            $( document ).ready(function() {
+                $('#selectpickerParamId').on('change', function(e){
+                    var selectedRegion = document.getElementById("selectpickerRegion").value
+                    var selectedParamId = document.getElementById("selectpickerParamId").value
+                    var paramsForThisCombination = mySavedData[selectedRegion][selectedParamId];
+                    for (key in paramsForThisCombination) {
+                        document.getElementById(key).value = paramsForThisCombination[key]
+                    }
+                });
+            });
+        </script>
+
+        <script>
+            function savePropertiesLocally() {
+                var selectedRegion = document.getElementById("selectpickerRegion").value
+                var selectedParamId = document.getElementById("selectpickerParamId").value
+                var paramsForThisCombination = mySavedData[selectedRegion][selectedParamId];
+                for (key in paramsForThisCombination) {
+                    mySavedData[selectedRegion][selectedParamId][key] = parseFloat(document.getElementById(key).value);
+                }
+            }
+        </script>
+
+    </head>
+    <body>
+        <header class="site-header">
+          <nav class="navbar navbar-expand-md navbar-dark bg-steel fixed-top">
+            <div class="container">
+              <a class="navbar-brand mr-4">Optimierungsparameter</a>
+                <a class="navbar-brand mr-4 navbar-zurueck" onclick="window.location.href=window.location.origin + '/landingPage'">Zurück</a>
+            </div>
+          </nav>
+        </header>
+        <main role="main" class="container">
+            <div class="container">
+                <div class="col-md-8">
+                    <div class="container" id="bottomDisplayContainer">
+                        <select class="selectpicker" id="selectpickerRegion">
+                            <option value="" selected disabled>Region wählen</option>
+                            {% for header in headers %}
+                                <option value={{header[0]}}>{{header[0]}}</option>
+                            {% endfor %}
+                        </select>
+                        <br>
+                        <br>
+                        <select class="selectpicker" id="selectpickerParamId">
+                            <option value="" selected disabled>Parameterkonfiguration wählen</option>
+                        </select>
+                        <br>
+                        <br>
+
+                        <h3>Gewichtung des Handlungsbedarfs</h3>
+
+                        <table class="table">
+                          <thead>
+                            <tr>
+                              <th scope="col"></th>
+                              <th scope="col">Schadensklasse 1</th>
+                              <th scope="col">Schadensklasse 2</th>
+                              <th scope="col">Schadensklasse 3</th>
+                              <th scope="col">Schadensklasse 4</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <tr>
+                              <th scope="row">Gefahrenklasse 1</th>
+                              <td><input type="number" name="amount" id=gefahrenklasse1schadensklasse1></td>
+                              <td><input type="number" name="amount" id=gefahrenklasse1schadensklasse2></td>
+                              <td><input type="number" name="amount" id=gefahrenklasse1schadensklasse3></td>
+                              <td><input type="number" name="amount" id=gefahrenklasse1schadensklasse4></td>
+                            </tr>
+                            <tr>
+                              <th scope="row">Gefahrenklasse 2</th>
+                              <td><input type="number" name="amount" id=gefahrenklasse2schadensklasse1></td>
+                              <td><input type="number" name="amount" id=gefahrenklasse2schadensklasse2></td>
+                              <td><input type="number" name="amount" id=gefahrenklasse2schadensklasse3></td>
+                              <td><input type="number" name="amount" id=gefahrenklasse2schadensklasse4></td>
+                            </tr>
+                            <tr>
+                              <th scope="row">Gefahrenklasse 3</th>
+                              <td><input type="number" name="amount" id=gefahrenklasse3schadensklasse1></td>
+                              <td><input type="number" name="amount" id=gefahrenklasse3schadensklasse2></td>
+                              <td><input type="number" name="amount" id=gefahrenklasse3schadensklasse3></td>
+                              <td><input type="number" name="amount" id=gefahrenklasse3schadensklasse4></td>
+                            </tr>
+                            <tr>
+                              <th scope="row">Gefahrenklasse 4</th>
+                              <td><input type="number" name="amount" id=gefahrenklasse4schadensklasse1></td>
+                              <td><input type="number" name="amount" id=gefahrenklasse4schadensklasse2></td>
+                              <td><input type="number" name="amount" id=gefahrenklasse4schadensklasse3></td>
+                              <td><input type="number" name="amount" id=gefahrenklasse4schadensklasse4></td>
+                            </tr>
+                          </tbody>
+                        </table>
+
+<!--                        <form>-->
+<!--                            {% for param_name in parameterNames %}-->
+<!--                            {{param_name}}:<br>-->
+<!--                            <input type="number" name="amount" id={{param_name}}><br>-->
+<!--                            {% endfor %}-->
+<!--                        </form>-->
+                        <br>
+
+                        <h3>Gewichtung der Akteursgruppen</h3>
+
+                        <table class="table">
+                          <thead>
+                            <tr>
+                              <th scope="col">Akteursgruppe</th>
+                              <th scope="col">Gewichtung</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <tr>
+                              <th scope="row">Nicht zugeordnet</th>
+                              <td><input type="number" name="amount" id=gewichtungNone></td>
+                            </tr>
+                            <tr>
+                              <th scope="row">Bürger:innen</th>
+                              <td><input type="number" name="amount" id=gewichtungBuerger></td>
+                            </tr>
+                            <tr>
+                              <th scope="row">Kommune</th>
+                              <td><input type="number" name="amount" id=gewichtungKommune></td>
+                            </tr>
+                            <tr>
+                              <th scope="row">Religiöse Einrichtungen</th>
+                              <td><input type="number" name="amount" id=gewichtungReligion></td>
+                            </tr>
+                            <tr>
+                              <th scope="row">Lokale Wirtschaft</th>
+                              <td><input type="number" name="amount" id=gewichtungLokaleWirtschaft></td>
+                            </tr>
+                            <tr>
+                              <th scope="row">Landwirtschaft</th>
+                              <td><input type="number" name="amount" id=gewichtungLandwirtschaft></td>
+                            </tr>
+                            <tr>
+                              <th scope="row">Forstwirtschaft</th>
+                              <td><input type="number" name="amount" id=gewichtungForstwirtschaft></td>
+                            </tr>
+                          </tbody>
+                        </table>
+
+                        <h3>Beschränkung der Anreize</h3>
+
+                        <table class="table">
+                          <thead>
+                            <tr>
+                              <th scope="col">Benötigte Anreize</th>
+                              <th scope="col">Maximale Anzahl</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <tr>
+                              <th scope="row">Leichte Anreize</th>
+                              <td><input type="number" name="amount" id=maxAnzahlGelb></td>
+                            </tr>
+                            <tr>
+                              <th scope="row">Größere Anreize</th>
+                              <td><input type="number" name="amount" id=maxAnzahlRot></td>
+                            </tr>
+                          </tbody>
+                        </table>
+
+                        <h3>Beschränkung des Budgets</h3>
+
+                        <table class="table">
+                          <tbody>
+                            <tr>
+                              <th scope="row">Budget</th>
+                              <td><input type="number" name="amount" id=budget></td>
+                            </tr>
+                          </tbody>
+                        </table>
+
+                        <h3>Performance</h3>
+
+                        <table class="table">
+                          <thead>
+                            <tr>
+                              <th scope="col">Parameter</th>
+                              <th scope="col">Wert</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <tr>
+                              <th scope="row">Tuning</th>
+                              <td><input type="number" name="amount" id=genauigkeitDerGeodaetischenHoeheIncm></td>
+                            </tr>
+                            <tr>
+                              <th scope="row">MIP Gap</th>
+                              <td><input type="number" name="amount" id=mipgap></td>
+                            </tr>
+                            <tr>
+                              <th scope="row">Timeout</th>
+                              <td><input type="number" name="amount" id=timeout></td>
+                            </tr>
+                          </tbody>
+                        </table>
+
+                        <td><button type="submit" onclick="savePropertiesLocally()" class="btn btn-primary">Lokal Speichern</button></td>
+                        <br>
+                        <br>
+                        <form class="form-inline formSave" id="saveToDatabase" method="post">
+                            <td><button type="submit" class="btn btn-primary">In Datenbank Speichern</button></td>
+                        </form>
+                    </div>
+                    <br>
+                    <div id="successAlert" class="alert alert-success" role="alert" style="display:none;"></div>
+                    <div id="errorAlert" class="alert alert-danger" role="alert" style="display:none;"></div>
+                </div>
+            </div>
+        </main>
+    </body>
+</html>

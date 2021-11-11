@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto|Varela+Round|Open+Sans">
+        <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+
+        <!-- you need to include the ShieldUI CSS and JS assets in order for the Upload widget to work -->
+        <link rel="stylesheet" type="text/css" href="http://www.shieldui.com/shared/components/latest/css/light-bootstrap/all.min.css" />
+        <script type="text/javascript" src="http://www.shieldui.com/shared/components/latest/js/shieldui-all.min.js"></script>
+
+        <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+    </head>
+    <body>
+        <header class="site-header">
+          <nav class="navbar navbar-expand-md navbar-dark bg-steel fixed-top">
+            <div class="container">
+              <a class="navbar-brand mr-4">ALKIS</a>
+                <a class="navbar-brand mr-4 navbar-zurueck" onclick="window.location.href=window.location.origin + '/landingPage'">Zurück</a>
+            </div>
+          </nav>
+        </header>
+        <main role="main" class="container">
+            <div class="container">
+                <div class="col-md-4">
+                    <form method="post" enctype="multipart/form-data">
+                        <input type="file" id="files" name="file" multiple="multiple" enctype="multipart/form-data" />
+                        <br>
+                        <input type="text" id="region" name="region"
+           placeholder="Name der Region" method="post">
+                        <p style="margin-top: 20px;">
+                            <input type="submit" value="Hochladen" class="btn btn-lg btn-primary" />
+                        </p>
+                    </form>
+                </div>
+                <div class="col-md-4"></div>
+            </div>
+        </main>
+    </body>
+</html>

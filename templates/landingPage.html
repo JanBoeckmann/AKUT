@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto|Varela+Round|Open+Sans">
+        <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+
+        <!-- you need to include the ShieldUI CSS and JS assets in order for the Upload widget to work -->
+        <link rel="stylesheet" type="text/css" href="http://www.shieldui.com/shared/components/latest/css/light-bootstrap/all.min.css" />
+        <script type="text/javascript" src="http://www.shieldui.com/shared/components/latest/js/shieldui-all.min.js"></script>
+
+        <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+
+
+    </head>
+    <body>
+        <header class="site-header">
+          <nav class="navbar navbar-expand-md navbar-dark bg-steel fixed-top">
+            <div class="container">
+              <a class="navbar-brand mr-4">Das Beratungstool AKUT</a>
+            </div>
+          </nav>
+        </header>
+        <br>
+        <br>
+        <br>
+        <main role="main" class="container">
+            <div class="container headline-container">
+                <h3>Uploads</h3>
+            </div>
+            <div class="container fiori-container">
+              <div class="card-deck mb-3 text-center">
+                <div class="card mb-4 box-shadow">
+                  <div class="card-header card-header-uploads">
+                    <h4 class="my-0 font-weight-normal">Modellgrenzen</h4>
+                  </div>
+                  <div class="card-body card-body-uploads">
+                    <ul class="list-unstyled mt-3 mb-4">
+                      <li>Schritt 1:</li>
+                      <li>Modellgrenzen-Datei hochladen (Dateiformat: .csv)</li>
+                    </ul>
+                      <button type="button" class="btn btn-lg btn-block btn-primary btn-uploads" onclick="window.location.href=window.location.origin + '/uploadEinzugsgebiete'">Zum Modul</button>
+                  </div>
+                </div>
+                <div class="card mb-4 box-shadow">
+                  <div class="card-header card-header-uploads">
+                    <h4 class="my-0 font-weight-normal">DGM1</h4>
+                  </div>
+                  <div class="card-body card-body-uploads">
+                    <ul class="list-unstyled mt-3 mb-4">
+                      <li>Schritt 2:</li>
+                      <li>DGM1-Datei hochladen</li>
+                      <li>(Dateiformat: .txt)</li>
+                    </ul>
+                      <button type="button" class="btn btn-lg btn-block btn-primary btn-uploads" onclick="window.location.href=window.location.origin + '/upload'">Zum Modul</button>
+                  </div>
+                </div>
+                <div class="card mb-4 box-shadow">
+                  <div class="card-header card-header-uploads">
+                    <h4 class="my-0 font-weight-normal">ALKIS</h4>
+                  </div>
+                  <div class="card-body card-body-uploads">
+                    <ul class="list-unstyled mt-3 mb-4">
+                      <li>Schritt 3:</li>
+                      <li>ALKIS-Datei hochladen</li>
+                      <li>(Dateiformat: .xml)</li>
+                    </ul>
+                      <button type="button" class="btn btn-lg btn-block btn-primary btn-uploads" onclick="window.location.href=window.location.origin + '/uploadKatasterAsXml'">Zum Modul</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="container fiori-container">
+              <div class="card-deck mb-3 text-center">
+                <div class="card mb-4 box-shadow">
+                  <div class="card-header card-header-uploads">
+                    <h4 class="my-0 font-weight-normal">Kopieren</h4>
+                  </div>
+                  <div class="card-body card-body-uploads">
+                    <ul class="list-unstyled mt-3 mb-4">
+                      <li>Hier wird eine bestehende Region kopiert.</li>
+                    </ul>
+                      <button type="button" class="btn btn-lg btn-block btn-primary btn-uploads" onclick="window.location.href=window.location.origin + '/copyRegion'">Zum Modul</button>
+                  </div>
+                </div>
+                <div class="card mb-4 box-shadow box-hidden">
+                </div>
+                <div class="card mb-4 box-shadow box-hidden">
+                </div>
+              </div>
+            </div>
+            <div class="container headline-container">
+                <h3>Eingangsdaten</h3>
+            </div>
+            <div class="container fiori-container">
+              <div class="card-deck mb-3 text-center">
+                <div class="card mb-4 box-shadow">
+                  <div class="card-header card-header-eingangsdaten">
+                    <h4 class="my-0 font-weight-normal">Regenspende & Regendauer</h4>
+                  </div>
+                  <div class="card-body card-body-eingangsdaten">
+                    <ul class="list-unstyled mt-3 mb-4">
+                      <li>Hier wird die Niederschlagsbelastung bearbeitet.</li>
+                    </ul>
+                      <button type="button" class="btn btn-lg btn-block btn-primary btn-eingangsdaten" onclick="window.location.href=window.location.origin + '/modifyHeaderData'">Zum Modul</button>
+                  </div>
+                </div>
+                <div class="card mb-4 box-shadow">
+                  <div class="card-header card-header-eingangsdaten">
+                    <h4 class="my-0 font-weight-normal">Gebäude, Akteursgruppen & Schadensklassen</h4>
+                  </div>
+                  <div class="card-body card-body-eingangsdaten">
+                    <ul class="list-unstyled mt-3 mb-4">
+                      <li>Hier werden Gebäude inkl. zugehöriger Akteursgruppe und Schadensklasse bearbeitet.</li>
+                    </ul>
+                      <button type="button" class="btn btn-lg btn-block btn-primary btn-eingangsdaten" onclick="window.location.href=window.location.origin + '/modifyBuildings'">Zum Modul</button>
+                  </div>
+                </div>
+                <div class="card mb-4 box-shadow box-hidden">
+                </div>
+              </div>
+            </div>
+            <div class="container headline-container">
+                <h3>Modellierung</h3>
+            </div>
+            <div class="container fiori-container">
+              <div class="card-deck mb-3 text-center">
+                <div class="card mb-4 box-shadow">
+                  <div class="card-header card-header-modellierung">
+                    <h4 class="my-0 font-weight-normal">Kooperationsbereitschaft</h4>
+                  </div>
+                  <div class="card-body card-body-modellierung">
+                    <ul class="list-unstyled mt-3 mb-4">
+                      <li>Hier wird die Kooperationsbereitschaft über die Liegenschaften bearbeitet.</li>
+                    </ul>
+                      <button type="button" class="btn btn-lg btn-block btn-primary btn-modellierung" onclick="window.location.href=window.location.origin + '/showKataster'">Zum Modul</button>
+                  </div>
+                </div>
+                <div class="card mb-4 box-shadow">
+                  <div class="card-header card-header-modellierung">
+                    <h4 class="my-0 font-weight-normal">Rückhaltung & Ableitung</h4>
+                  </div>
+                  <div class="card-body card-body-modellierung">
+                    <ul class="list-unstyled mt-3 mb-4">
+                      <li>Hier werden Maßnahmen zur Rückhaltung und Ableitung bearbeitet.</li>
+                    </ul>
+                      <button type="button" class="btn btn-lg btn-block btn-primary btn-modellierung" onclick="window.location.href=window.location.origin + '/modifyGraph'">Zum Modul</button>
+                  </div>
+                </div>
+                  <div class="card mb-4 box-shadow">
+                  <div class="card-header card-header-modellierung">
+                    <h4 class="my-0 font-weight-normal">Optimierungsparameter</h4>
+                  </div>
+                  <div class="card-body card-body-modellierung">
+                    <ul class="list-unstyled mt-3 mb-4">
+                      <li>Hier werden die Optimierungsparameter bearbeitet.</li>
+                    </ul>
+                      <button type="button" class="btn btn-lg btn-block btn-primary btn-modellierung" onclick="window.location.href=window.location.origin + '/modifyOptimizationParameters'">Zum Modul</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="container fiori-container">
+              <div class="card-deck mb-3 text-center">
+                <div class="card mb-4 box-shadow">
+                  <div class="card-header card-header-modellierung">
+                    <h4 class="my-0 font-weight-normal">Modellgebiet</h4>
+                  </div>
+                  <div class="card-body card-body-modellierung">
+                    <ul class="list-unstyled mt-3 mb-4">
+                      <li>Hier wird die Rasterauflösung angezeigt.</li>
+                    </ul>
+                      <button type="button" class="btn btn-lg btn-block btn-primary btn-modellierung" onclick="window.location.href=window.location.origin + '/showGrid'">Zum Modul</button>
+                  </div>
+                </div>
+                <div class="card mb-4 box-shadow box-hidden">
+                </div>
+                <div class="card mb-4 box-shadow box-hidden">
+                </div>
+              </div>
+            </div>
+            <div class="container headline-container">
+                <h3>Berechnungen</h3>
+            </div>
+            <div class="container fiori-container">
+              <div class="card-deck mb-3 text-center">
+                <div class="card mb-4 box-shadow">
+                  <div class="card-header card-header-berechnungen">
+                    <h4 class="my-0 font-weight-normal">Rasterknoten mit Gebäuden & ggf. Maßnahmen</h4>
+                  </div>
+                  <div class="card-body card-body-berechnungen">
+                    <ul class="list-unstyled mt-3 mb-4">
+                        <li>Schritt 1:</li>
+                      <li>Hier werden die Rasterknoten mit Gebäuden & ggf. Maßnahmen berechnet.</li>
+                    </ul>
+                      <button type="button" class="btn btn-lg btn-block btn-primary btn-berechnungen" onclick="window.location.href=window.location.origin + '/computeMitMassnahme'">Zum Modul</button>
+                  </div>
+                </div>
+                <div class="card mb-4 box-shadow">
+                  <div class="card-header card-header-berechnungen">
+                    <h4 class="my-0 font-weight-normal">Rasterknoten mit Fließwegen</h4>
+                  </div>
+                  <div class="card-body card-body-berechnungen">
+                    <ul class="list-unstyled mt-3 mb-4">
+                        <li>Schritt 2:</li>
+                      <li>Hier werdem die Rasterknoten mit Fließwegen berechnet.</li>
+                    </ul>
+                      <button type="button" class="btn btn-lg btn-block btn-primary btn-berechnungen" onclick="window.location.href=window.location.origin + '/computeGraphOfRelevantNodes'">Zum Modul</button>
+                  </div>
+                </div>
+                <div class="card mb-4 box-shadow">
+                  <div class="card-header card-header-berechnungen">
+                    <h4 class="my-0 font-weight-normal">Liegenschaften mit Maßnahmen</h4>
+                  </div>
+                  <div class="card-body card-body-berechnungen">
+                    <ul class="list-unstyled mt-3 mb-4">
+                        <li>Schritt 3:</li>
+                      <li>Hier wird die Verbindung von Liegenschaften zu Maßnahmen berechnet.</li>
+                    </ul>
+                      <button type="button" class="btn btn-lg btn-block btn-primary btn-berechnungen" onclick="window.location.href=window.location.origin + '/computeMassnahmenKataster'">Zum Modul</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="container fiori-container">
+              <div class="card-deck mb-3 text-center">
+                <div class="card mb-4 box-shadow">
+                  <div class="card-header card-header-berechnungen">
+                    <h4 class="my-0 font-weight-normal">Optimierungsalgorithmus</h4>
+                  </div>
+                  <div class="card-body card-body-berechnungen">
+                    <ul class="list-unstyled mt-3 mb-4">
+                        <li>Schritt 4:</li>
+                      <li>Hier wird die Lösung berechnet. Dieser Prozess kann etwas dauern.</li>
+                    </ul>
+                      <button type="button" class="btn btn-lg btn-block btn-primary btn-berechnungen" onclick="window.location.href=window.location.origin + '/computeOptimalSolution'">Zum Modul</button>
+                  </div>
+                </div>
+                  <div class="card mb-4 box-shadow box-hidden">
+                </div>
+                  <div class="card mb-4 box-shadow box-hidden">
+                </div>
+              </div>
+            </div>
+            <div class="container headline-container">
+                <h3>Lösungen</h3>
+            </div>
+            <div class="container fiori-container">
+              <div class="card-deck mb-3 text-center">
+                <div class="card mb-4 box-shadow">
+                  <div class="card-header card-header-loesungen">
+                    <h4 class="my-0 font-weight-normal">Handlungsbedarf</h4>
+                  </div>
+                  <div class="card-body card-body-loesungen">
+                    <ul class="list-unstyled mt-3 mb-4">
+                      <li>Hier werden der Handlungsbedarf und die Wasserstände angezeigt.</li>
+                    </ul>
+                      <button type="button" class="btn btn-lg btn-block btn-primary btn-loesungen" onclick="window.location.href=window.location.origin + '/showHandlungsbedarf'">Zum Modul</button>
+                  </div>
+                </div>
+                 <div class="card mb-4 box-shadow">
+                      <div class="card-header card-header-loesungen">
+                    <h4 class="my-0 font-weight-normal">Wasserflüsse</h4>
+                  </div>
+                  <div class="card-body card-body-loesungen">
+                    <ul class="list-unstyled mt-3 mb-4">
+                      <li>Hier werden die Wasserflüsse angezeigt.</li>
+                    </ul>
+                    <button type="button" class="btn btn-lg btn-block btn-primary btn-loesungen" onclick="window.location.href=window.location.origin + '/showFliesswege'">Zum Modul</button>
+                  </div>
+                </div>
+                <div class="card mb-4 box-shadow">
+                  <div class="card-header card-header-loesungen">
+                    <h4 class="my-0 font-weight-normal">Handlungskonzept</h4>
+                  </div>
+                  <div class="card-body card-body-loesungen">
+                    <ul class="list-unstyled mt-3 mb-4">
+                      <li>Hier wird die optimale Maßnahmenkombination angezeigt.</li>
+                    </ul>
+                    <button type="button" class="btn btn-lg btn-block btn-primary btn-loesungen" onclick="window.location.href=window.location.origin + '/showMassnahmenSolution'">Zum Modul</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="container headline-container">
+                <h3>Löschen</h3>
+            </div>
+            <div class="container fiori-container">
+              <div class="card-deck mb-3 text-center">
+                <div class="card mb-4 box-shadow">
+                  <div class="card-header card-header-loeschen">
+                    <h4 class="my-0 font-weight-normal">Daten Löschen</h4>
+                  </div>
+                  <div class="card-body card-body-loeschen">
+                    <ul class="list-unstyled mt-3 mb-4">
+                      <li>Hier können alle Daten zu einer gegebenen Region gelöscht werden</li>
+                    </ul>
+                      <button type="button" class="btn btn-lg btn-block btn-primary btn-loeschen" onclick="window.location.href=window.location.origin + '/delete'">Zum Modul</button>
+                  </div>
+                </div>
+                  <div class="card mb-4 box-shadow box-hidden">
+                </div>
+                  <div class="card mb-4 box-shadow box-hidden">
+                </div>
+              </div>
+            </div>
+        </main>
+    </body>
+</html>

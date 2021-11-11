@@ -1,0 +1,269 @@
+body {
+  background: #fafafa;
+  color: #333333;
+}
+
+h1, h2, h3, h5, h6 {
+  color: #444444;
+}
+
+ul {
+  margin: 0;
+}
+
+.bg-uploads{
+    background-color: rgba(251, 190, 9, 1) !important;
+}
+
+.bg-steel {
+  background-color: #5f788a;
+}
+
+.site-header .navbar-nav .nav-link {
+  /*color: #cbd5db;*/
+    color: black;
+}
+
+.site-header .navbar-nav .nav-link:hover {
+  /*color: #ffffff;*/
+    color: black;
+}
+
+.site-header .navbar-nav .nav-link.active {
+  font-weight: 500;
+}
+
+.content-section {
+  background: #ffffff;
+  padding: 10px 20px;
+  border: 1px solid #dddddd;
+  border-radius: 3px;
+  margin-bottom: 20px;
+}
+
+.article-title {
+  color: #444444;
+}
+
+.article-title:hover {
+  color: #428bca;
+  text-decoration: none;
+}
+
+.article-content {
+  white-space: pre-line;
+}
+
+.article-img {
+  height: 65px;
+  width: 65px;
+  margin-right: 16px;
+}
+
+.article-metadata {
+  padding-bottom: 1px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid #e3e3e3
+}
+
+.article-metadata a:hover {
+  color: #333;
+  text-decoration: none;
+}
+
+.article-svg {
+  width: 25px;
+  height: 25px;
+  vertical-align: middle;
+}
+
+.account-img {
+  height: 125px;
+  width: 125px;
+  margin-right: 20px;
+  margin-bottom: 16px;
+}
+
+.account-heading {
+  font-size: 2.5rem;
+}
+
+.navbar-brand{
+    color: white !important;
+}
+
+.pricing-header {
+  max-width: 700px;
+}
+
+.card-deck .card {
+  min-width: 220px;
+}
+
+.card-deck{
+    margin-top: 20px;
+}
+
+.border-top{
+    border-top: 1px solid #e5e5e5;
+}
+
+.border-bottom{
+    border-bottom: 1px solid #e5e5e5;
+}
+
+.box-shadow { box-shadow: 0 .25rem .75rem rgba(0, 0, 0, .05); }
+
+.box-hidden{
+    visibility: hidden;
+}
+
+.legend .leaflet-right .leaflet-control{
+  line-height: 18px;
+  color: #555;
+  background-color: white;
+  margin-right:10px;
+}
+
+.leaflet-right .leaflet-control{
+  padding: 5px;
+  border-radius: 5px;
+      background-color: white;
+}
+.legend i {
+    width: 13px;
+    height: 13px;
+    float: left;
+    margin-right: 8px;
+    opacity: 0.7;
+  margin-top: 2px;
+}
+
+.navbar-zurueck:hover{
+    cursor: pointer;
+
+}
+
+.card-header-uploads{
+    background-color: rgba(251, 190, 9, 1) !important;
+    border-bottom-color: gray;
+}
+
+.card-body-uploads{
+    background-color: rgba(251, 190, 9, 0.3) !important;
+}
+
+.btn-uploads{
+    background-color: white !important;
+    border-color: gray !important;
+    color: #14191C;
+}
+
+.card-header-eingangsdaten{
+    background-color: rgba(133, 71, 185, 1) !important;
+    border-bottom-color: gray;
+    color: black !important;
+}
+
+.card-body-eingangsdaten{
+    background-color: rgba(191, 158, 218, 0.3) !important;
+}
+
+.btn-eingangsdaten{
+    background-color: white !important;
+    border-color: gray !important;
+    color: #14191C;
+}
+
+.card-header-modellierung{
+    background-color: rgba(79, 129, 189, 1) !important;
+    border-bottom-color: gray;
+    color: black !important;
+}
+
+.card-body-modellierung{
+    background-color: rgba(169, 193, 223, 0.3) !important;
+}
+
+.btn-modellierung{
+    background-color: white !important;
+    border-color: gray !important;
+    color: #14191C;
+}
+
+.card-header-berechnungen{
+    background-color: rgba(28, 167, 80, 1) !important;
+    border-bottom-color: gray;
+    color: black !important;
+}
+
+.card-body-berechnungen{
+    background-color: rgba(133, 235, 172, 0.3) !important;
+}
+
+.btn-berechnungen{
+    background-color: white !important;
+    border-color: gray !important;
+    color: #14191C;
+}
+
+.card-header-loesungen{
+    background-color: rgba(35, 167, 154, 1) !important;
+    border-bottom-color: gray;
+    color: black !important;
+}
+
+.card-body-loesungen{
+    background-color: rgba(144, 232, 224, 0.3) !important;
+}
+
+.btn-loesungen{
+    background-color: white !important;
+    border-color: gray !important;
+    color: #14191C;
+}
+
+.card-header-loeschen{
+    background-color: rgba(255, 67, 67, 1) !important;
+    border-bottom-color: gray;
+    color: black !important;
+}
+
+.card-body-loeschen{
+    background-color: rgba(255, 133, 133, 0.3) !important;
+}
+
+.btn-loeschen{
+    background-color: white !important;
+    border-color: gray !important;
+    color: #14191C;
+}
+
+.card{
+    border-color: gray !important;
+}
+
+.btn-loeschen:hover{
+    color: darkgrey !important;
+}
+
+.btn-loesungen:hover{
+    color: darkgrey !important;
+}
+
+.btn-berechnungen:hover{
+    color: darkgrey !important;
+}
+
+.btn-modellierung:hover{
+    color: darkgrey !important;
+}
+
+.btn-eingangsdaten:hover{
+    color: darkgrey !important;
+}
+
+.btn-uploads:hover{
+    color: darkgrey !important;
+}
+
