@@ -153,8 +153,9 @@ class databaseHandler:
             fieldnames = ["Rowid", "DPFILL10", "X", "Y", "DPFILL10_1"]
             delimiter = ";"
             if self.customer == "Wismar":
-                delimiter = " "
+                delimiter = ";"
                 fieldnames = ["d1", "d2", "X", "d3", "Y", "d4", "d5", "d6", "d7", "d8", "d9", "DPFILL10_1"]
+                fieldnames = ["X", "Y", "DPFILL10_1"]
             if self.customer == "KMB" or self.customer == "Ersfeld":
                 delimiter = ";"
                 fieldnames = ["X", "Y", "DPFILL10_1"]
