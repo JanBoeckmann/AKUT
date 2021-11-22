@@ -1002,7 +1002,7 @@ class databaseHandler:
         headerData = self.readRegionHeader()
         allAuffangbecken = self.readAuffangbecken()
         all_leitgraeben = self.read_leitgraeben()
-        gridInstanceGraph = instanceGraphForDGM25(self.region, gridData["Position"], gridData["Relevant"], gridData["GeodesicHeight"], gridData["massnahmenOnNode"], headerData[6], allAuffangbecken, headerData[7], headerData[8])
+        gridInstanceGraph = instanceGraphForDGM25(self.region, gridData["Position"], gridData["Relevant"], gridData["GeodesicHeight"], gridData["massnahmenOnNode"], headerData[6], allAuffangbecken, headerData[7] * 1.1, headerData[8])
         print("Computing list of relevant and connected nodes")
         relevantNodes, connectedNodes = gridInstanceGraph.computeListOfRelevantAndConnectedNodes()
         print("Computing initial solution")
