@@ -1,4 +1,7 @@
-from flask import Flask, url_for, request, render_template, redirect, jsonify
+from flask import Flask, url_for, request, render_template, redirect, jsonify, flash
+from flask_sqlalchemy import SQLAlchemy
+from flask_bcrypt import Bcrypt
+from flask_login import LoginManager, UserMixin, login_user, current_user, logout_user, login_required
 from werkzeug.utils import secure_filename
 import pprint
 import os
@@ -15,6 +18,29 @@ timeSteps = 6
 rain = 0.6
 
 app = Flask(__name__)
+app.config['SECRET_KEY'] = 'zZ~AutfD*%ay#7AfxSMn'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///login.db'
+login_db = SQLAlchemy(app)
+bcrypt = Bcrypt(app)
+login_manager = LoginManager(app)
+login_manager.login_view = 'login'
+login_manager.login_message_category = 'info'
+
+class User(login_db.Model, UserMixin):
+    id = login_db.Column(login_db.Integer, primary_key=True)
+    username = login_db.Column(login_db.String(20), unique=True, nullable=False)
+    email = login_db.Column(login_db.String(120), unique=True, nullable=False)
+    image_file = login_db.Column(login_db.String(20), nullable=False, default='default.jpg')
+    password = login_db.Column(login_db.String(60), nullable=False)
+
+    def __repr__(self):
+        return f"User('{self.username}', '{self.email}', '{self.image_file}')"
+
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
+
+from forms import RegistrationForm, LoginForm # circular import
 
 class LoggingMiddleware(object):
     def __init__(self, app):
@@ -39,7 +65,57 @@ def index():
 
 @app.route("/landingPage")
 def landingPage():
-    return render_template("landingPage.html")
+    return render_template("landingPage.html", title='Das Beratungstool', landing='true')
+
+# <- TODO ->
+# - !Templates "aufraeumen" mit Vererbung (mehrfach), ansonsten flash-messages andere templates; kein title; nicht weniger templates
+# - 1x datenbank-erstellung mit login_db.create_all() nötig gewesen? > passt
+# - landing page ohne zurueck -> über templates (landingpage_layout oder so)
+# - !url_for bei links > macht sinn
+# - account-seite (Vid-7) erstmal nich
+# - remember me funktion > egal
+# - welche seiten nur mit login zugreifbar? > alles außer register/login // regionen nur für nutzer, die hochgeladen haben & filter // admin-user; exra tabelle user_region (rastergr. 1 hardcoden) in login..db
+# - Bar oben einheitlich (erstmal lassen), stylesheet-version
+# - !circular imports / package -> packacge!
+
+@app.route("/login", methods=['GET', 'POST'])
+def login():
+    if current_user.is_authenticated:
+        return redirect(url_for('landingPage'))
+    form = LoginForm()
+    if form.validate_on_submit():
+        user = User.query.filter_by(email=form.email.data).first()
+        if user and bcrypt.check_password_hash(user.password, form.password.data):
+            login_user(user, remember=form.remember.data)
+            next_page = request.args.get('next')
+            return redirect(next_page) if next_page else redirect(url_for('landingPage'))
+        else:
+            flash('Login fehlgeschlagen. Bitte überprüfe E-Mail and Passwort.', 'danger')
+    return render_template("login.html", title='Login', landing='false', form=form)
+
+@app.route("/register", methods=['GET', 'POST'])
+def register():
+    if current_user.is_authenticated:
+        return redirect(url_for('landingPage'))
+    form = RegistrationForm()
+    if form.validate_on_submit():
+        hashed_pw = bcrypt.generate_password_hash(form.password.data).decode('utf-8')
+        user = User(username=form.username.data, email=form.email.data, password=hashed_pw)
+        login_db.session.add(user)
+        login_db.session.commit()
+        flash(f'Account erstellt für {form.username.data}!', 'success')
+        return redirect(url_for('login'))
+    return render_template("register.html", title='Registrierung', landing='false', form=form)
+
+@app.route("/logout", methods=['GET', 'POST'])
+def logout():
+    logout_user()
+    return redirect(url_for('landingPage'))
+
+@app.route("/account", methods=['GET', 'POST'])
+@login_required
+def account():
+    return render_template("account.html", title='Account', landing='false')
 
 @app.route("/upload", methods=['GET', 'POST'])
 def upload():
@@ -599,4 +675,5 @@ def showFliesswegeDisplayProcess():
 
 if __name__ == "__main__":
     app.wsgi_app = LoggingMiddleware(app.wsgi_app)
-    app.run(port=4000, debug=True, host='0.0.0.0', threaded=False, processes=10)
+    # app.run(port=4000, debug=True, host='0.0.0.0', threaded=False, processes=10)
+    app.run(port=4000, debug=True, host='0.0.0.0', threaded=False)

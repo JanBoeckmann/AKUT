@@ -1,35 +1,9 @@
-<!DOCTYPE html>
-<html lang="en">
-    <head>
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto|Varela+Round|Open+Sans">
-        <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
-        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
-        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
-        <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
-        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+{% extends "layout.html" %}
+{% block version %}
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
+{% endblock version %}
 
-        <!-- you need to include the ShieldUI CSS and JS assets in order for the Upload widget to work -->
-        <link rel="stylesheet" type="text/css" href="http://www.shieldui.com/shared/components/latest/css/light-bootstrap/all.min.css" />
-        <script type="text/javascript" src="http://www.shieldui.com/shared/components/latest/js/shieldui-all.min.js"></script>
-
-        <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
-
-
-    </head>
-    <body>
-        <header class="site-header">
-          <nav class="navbar navbar-expand-md navbar-dark bg-steel fixed-top">
-            <div class="container">
-              <a class="navbar-brand mr-4">Das Beratungstool AKUT</a>
-            </div>
-          </nav>
-        </header>
-        <br>
-        <br>
-        <br>
-        <main role="main" class="container">
+{% block content %}
             <div class="container headline-container">
                 <h3>Uploads</h3>
             </div>
@@ -309,6 +283,4 @@
                 </div>
               </div>
             </div>
-        </main>
-    </body>
-</html>
+{% endblock content %}
