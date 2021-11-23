@@ -751,16 +751,16 @@ class ipEquilibriumWaterLevels:
             # Performance: If a node is flooded, all outgoing arcs must be full
             for n in self.cc_graph.nodes:
                 for s in self.cc_graph.successors(n):
-                    pass
-                    # maybe we'll have to adjust this one with original direction, I'll deactivate it for the time being. As long as we don't have retainers, this should work as usual
-                    #myModel.addGenConstrIndicator(floodedNodes[n, t], True, fullArc[(n, s), t], gurobi.GRB.EQUAL, 1, name="performanceConstraint6")
+                    myModel.addGenConstrIndicator(floodedNodes[n, t], True, fullArc[(n, s), t] - originalDirection[(n, s)], gurobi.GRB.GREATER_EQUAL, 0, name="performanceConstraint6")
+                for p in self.cc_graph.predecessors(n):
+                    myModel.addGenConstrIndicator(floodedNodes[n, t], True, fullArc[(p, n), t] + originalDirection[(p, n)], gurobi.GRB.GREATER_EQUAL, 1, name="performanceConstraint6")
 
             # Performance: If a node is not flooded, all ingoing arcs cannot be full
             for n in self.cc_graph.nodes:
                 for p in self.cc_graph.predecessors(n):
-                    pass
-                    # maybe we'll have to adjust this one with original direction, I'll deactivate it for the time being. As long as we don't have retainers, this should work as usual
-                    #myModel.addGenConstrIndicator(floodedNodes[n, t], False, fullArc[(p, n), t], gurobi.GRB.EQUAL, 0, name="performanceConstraint7")
+                    myModel.addGenConstrIndicator(floodedNodes[n, t], False, fullArc[(p, n), t] + originalDirection[(p, n)], gurobi.GRB.LESS_EQUAL, 1, name="performanceConstraint7")
+                for s in self.cc_graph.successors(n):
+                    myModel.addGenConstrIndicator(floodedNodes[n, t], False, fullArc[(n, s), t] - originalDirection[(n, s)], gurobi.GRB.LESS_EQUAL, 0, name="performanceConstraint7")
 
         def addInitialSolutionConstraints():
             counter_initial_solution_constraints = 0
