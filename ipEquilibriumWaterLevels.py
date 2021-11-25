@@ -50,11 +50,13 @@ class ipEquilibriumWaterLevels:
     def print_outputs(self):
         print("Anzahl der Gebäude:", len(self.all_buildings))
         print("Fläche aller Knoten:", sum(self.cc_area.values()))
+        print("Anzahl der Knoten vor concatenate: ", self.originalGraph.number_of_nodes())
+        print("Anzahl der Knoten nach concatenate: ", self.cc_graph.number_of_nodes())
         print("Fläche des source node:", self.cc_area[(-1, -1)])
         heights = list(self.cc_geodesic_height.values())
         heights.remove(max(heights)) #remove height of (-1, -1)
-
         print("Maximaler Höhenunterschied aller Knoten außer source node:", max(heights) - min(heights))
+        print("Anazhl der Knoten vor concatenate: ", self.originalGraph.number_of_nodes())
 
     def myround(self, x, base=5):
         return base * round(x / base)
