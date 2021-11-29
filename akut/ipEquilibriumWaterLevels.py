@@ -24,10 +24,10 @@ class ipEquilibriumWaterLevels:
         self.massnahmen_kataster = massnahmen_kataster
         self.all_kataster = all_kataster
         self.all_kataster_green, self.all_kataster_yellow, self.all_kataster_red, self.all_kataster_black = self.compute_kataster_categories()
-        print("entering function createGraph")
+        # print("entering function createGraph")
         self.originalGraph = self.createGraph()
         self.original_undirected_graph = self.originalGraph.to_undirected()
-        print("entering function compute_total_volume")
+        # print("entering function compute_total_volume")
         self.total_volume = self.compute_total_volume()
         self.objectiveValuePerNode = self.computeObjectiveValuePerNode()
         self.nodeContainsAuffangbecken = self.computeNodeContainsAuffangbecken()
@@ -36,15 +36,27 @@ class ipEquilibriumWaterLevels:
             self.compound_exactness = self.optimization_parameters["genauigkeitDerGeodaetischenHoeheIncm"] / 100
         else:
             self.compound_exactness = 0.05 #in Meters
-        print("compute compounded graph")
+        # print("compute compounded graph")
         self.cc_graph, self.cc_area, self.cc_geodesic_height, self.cc_ratios, self.connected_components_as_mapping_with_representation, self.mapping_representator_per_node = self.compute_compounded_graph()
-        print("done computing compounded graph")
         self.extendedGraph = self.createExtendedGraph()
         self.printSolutions = False
         self.flooded, self.activeNodes, self.waterHeight, self.auffangbecken_solution, self.leitgraeben_solution, self.flow_through_nodes, self.handlungsbedarf = self.solve()
         self.backwards_transformation_to_original_graph()
 
         print("solved: " + str(datetime.datetime.now()))
+        self.print_outputs()
+
+
+    def print_outputs(self):
+        print("Anzahl der Gebäude:", len(self.all_buildings))
+        print("Fläche aller Knoten:", sum(self.cc_area.values()))
+        print("Anzahl der Knoten vor concatenate: ", self.originalGraph.number_of_nodes())
+        print("Anzahl der Knoten nach concatenate: ", self.cc_graph.number_of_nodes())
+        print("Fläche des source node:", self.cc_area[(-1, -1)])
+        heights = list(self.cc_geodesic_height.values())
+        heights.remove(max(heights)) #remove height of (-1, -1)
+        print("Maximaler Höhenunterschied aller Knoten außer source node:", max(heights) - min(heights))
+        print("Anazhl der Knoten vor concatenate: ", self.originalGraph.number_of_nodes())
 
     def myround(self, x, base=5):
         return base * round(x / base)
@@ -159,28 +171,28 @@ class ipEquilibriumWaterLevels:
         connected_components = compute_connected_components()
         connected_components_as_mapping_with_representation = connected_components_to_mapping()
 
-        print("test1")
+        # print("test1")
 
         mapping_representator_per_node =dict()
         for representator_node, rest_of_cc in connected_components_as_mapping_with_representation.items():
             for n in rest_of_cc:
                 mapping_representator_per_node[n] = representator_node
 
-        print("test2")
+        # print("test2")
 
         cc_graph = self.originalGraph.copy()
         cc_geodesic_height = self.geodesicHeight.copy()
         cc_area = self.area.copy()
         cc_ratios = dict()
 
-        print("test3")
+        # print("test3")
         print(len(connected_components_as_mapping_with_representation))
 
         #merge nodes in cc_graph, adjust area and geodesic height
         i = 0
         for representator_node, rest_of_cc in connected_components_as_mapping_with_representation.items():
             i = i+1
-            print(i)
+            # print(i)
             for n in rest_of_cc:
                 cc_graph = nx.contracted_nodes(cc_graph, representator_node, n, self_loops=False)
                 cc_area[representator_node] = cc_area[representator_node] + cc_area[n]
@@ -189,7 +201,7 @@ class ipEquilibriumWaterLevels:
                     del cc_geodesic_height[n]
             cc_geodesic_height[representator_node] = self.myround(cc_geodesic_height[representator_node], self.compound_exactness)
 
-        print("test4")
+        # print("test4")
 
         for e in self.originalGraph.edges:
             original_start_node = e[0]
@@ -751,16 +763,16 @@ class ipEquilibriumWaterLevels:
             # Performance: If a node is flooded, all outgoing arcs must be full
             for n in self.cc_graph.nodes:
                 for s in self.cc_graph.successors(n):
-                    pass
-                    # maybe we'll have to adjust this one with original direction, I'll deactivate it for the time being. As long as we don't have retainers, this should work as usual
-                    #myModel.addGenConstrIndicator(floodedNodes[n, t], True, fullArc[(n, s), t], gurobi.GRB.EQUAL, 1, name="performanceConstraint6")
+                    myModel.addGenConstrIndicator(floodedNodes[n, t], True, fullArc[(n, s), t] - originalDirection[(n, s)], gurobi.GRB.GREATER_EQUAL, 0, name="performanceConstraint6")
+                for p in self.cc_graph.predecessors(n):
+                    myModel.addGenConstrIndicator(floodedNodes[n, t], True, fullArc[(p, n), t] + originalDirection[(p, n)], gurobi.GRB.GREATER_EQUAL, 1, name="performanceConstraint6")
 
             # Performance: If a node is not flooded, all ingoing arcs cannot be full
             for n in self.cc_graph.nodes:
                 for p in self.cc_graph.predecessors(n):
-                    pass
-                    # maybe we'll have to adjust this one with original direction, I'll deactivate it for the time being. As long as we don't have retainers, this should work as usual
-                    #myModel.addGenConstrIndicator(floodedNodes[n, t], False, fullArc[(p, n), t], gurobi.GRB.EQUAL, 0, name="performanceConstraint7")
+                    myModel.addGenConstrIndicator(floodedNodes[n, t], False, fullArc[(p, n), t] + originalDirection[(p, n)], gurobi.GRB.LESS_EQUAL, 1, name="performanceConstraint7")
+                for s in self.cc_graph.successors(n):
+                    myModel.addGenConstrIndicator(floodedNodes[n, t], False, fullArc[(n, s), t] - originalDirection[(n, s)], gurobi.GRB.LESS_EQUAL, 0, name="performanceConstraint7")
 
         def addInitialSolutionConstraints():
             counter_initial_solution_constraints = 0

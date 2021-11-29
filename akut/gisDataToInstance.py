@@ -59,6 +59,9 @@ class gisDataToInstance:
             if sumOfDifferencesInGeodesicHeightsOverOutgoingArcs > 0:
                 for v in self.originalGraph.successors(n):
                     ratios[(n, v)] = (self.positionAndGeodesicHeight[n] - self.positionAndGeodesicHeight[v]) / sumOfDifferencesInGeodesicHeightsOverOutgoingArcs
+            else:
+                for v in self.originalGraph.successors(n):
+                    ratios[(n, v)] = 1/len(self.originalGraph.successors(n))
         return ratios
 
     def createAreas(self):
