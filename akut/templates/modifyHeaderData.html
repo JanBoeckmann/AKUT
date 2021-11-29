@@ -1,0 +1,72 @@
+{% extends "layouts/navNorm.html" %}
+{% block head %}
+<!-- ajax imports -->
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.0/jquery.min.js"></script>
+
+<script src="{{ url_for('static', filename='js/modifyHeaderDataSaveToDatabase.js') }}"></script>
+
+<script>
+            var mySavedData = JSON.parse('{{ headersAsJson | tojson | safe}}');
+
+</script>
+
+<script>
+            $( document ).ready(function() {
+                $('.selectpicker').on('change', function(e){
+                    document.getElementById("inputAmount").value = mySavedData[this.value]["amount"];
+                    document.getElementById("inputDuration").value = mySavedData[this.value]["duration"];
+                });
+            });
+
+
+</script>
+
+<script>
+            function savePropertiesLocally() {
+                mySavedData[$('#selectpickerId')[0].value]["amount"] = document.getElementById("inputAmount").value;
+                mySavedData[$('#selectpickerId')[0].value]["duration"] = document.getElementById("inputDuration").value;
+            }
+
+</script>
+
+{% endblock head %}
+
+{% block title %}
+<a class="navbar-brand mr-4">Regenspende & Regendauer</a>
+{% endblock title %}
+
+{% block content %}
+<div class="container">
+    <div class="col-md-8">
+        <div class="container" id="bottomDisplayContainer">
+            <select class="selectpicker" id="selectpickerId">
+                <option value="" selected disabled>Region auswählen</option>
+                {% for header in headers %}
+                <option value={{header[0]}}>{{header[0]}}</option>
+                {% endfor %}
+            </select>
+            <form>
+                <br>
+                Regenspende [l / (s * ha)]:<br>
+                <input type="number" name="amount" id="inputAmount"><br>
+                Regendauer [min]:<br>
+                <input type="number" name="duration" id="inputDuration">
+            </form>
+            <br>
+            <td>
+                <button type="submit" onclick="savePropertiesLocally()" class="btn btn-primary">Lokal Speichern</button>
+            </td>
+            <br>
+            <br>
+            <form class="form-inline formSave" id="saveToDatabase" method="post">
+                <td>
+                    <button type="submit" class="btn btn-primary">In Datenbank Speichern</button>
+                </td>
+            </form>
+        </div>
+        <br>
+        <div id="successAlert" class="alert alert-success" role="alert" style="display:none;"></div>
+        <div id="errorAlert" class="alert alert-danger" role="alert" style="display:none;"></div>
+    </div>
+</div>
+{% endblock content %}

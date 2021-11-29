@@ -1,0 +1,20 @@
+{% extends "layouts/layout.html" %}
+
+{% block stylesheet %}
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+{% endblock stylesheet %}
+
+{% block navbar %}
+<ul class="nav navbar-nav navbar-left">
+<li><a class="navbar-brand mr-4" href="{{ url_for('landingPage') }}">Zurück</a></li>
+</ul>
+
+<ul class="nav navbar-nav navbar-right">
+    {% if current_user.is_authenticated %}
+    <li><a class="navbar-brand mr-4" href="{{ url_for('logout') }}">Logout</a></li>
+    {% else %}
+    <li><a class="navbar-brand mr-4" href="{{ url_for('login') }}">Login</a></li>
+    <li><a class="navbar-brand mr-4" href="{{ url_for('register') }}">Registieren</a></li>
+    {% endif %}
+</ul>
+{% endblock navbar %}

@@ -1,0 +1,46 @@
+{% extends "layouts/navNorm.html" %}
+
+{% block content %}
+<div class="container">
+    <div class="col-md-8">
+        <p>
+            <a class="btn btn-primary" data-toggle="collapse" href="#collapseExample" role="button"
+               aria-expanded="false" aria-controls="collapseExample">
+                Verfügbare Regionen Öffnen/Schließen
+            </a>
+        </p>
+        <div class="collapse" id="collapseExample">
+            <div class="card card-body">
+                <table class="table table-hover">
+                    <thead>
+                    <tr>
+                        <th>Region</th>
+                        <th>Auswählen</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% for header in headers %}
+                    <tr>
+                        <td>{{header[0]}}</td>
+                        <form class="form-inline formDisplay" id={{header[-1]}} method="post">
+                            <td>
+                                <button type="submit" class="btn btn-primary">Auswählen</button>
+                            </td>
+                        </form>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <br>
+        <div class="container" style="display:none" id="bottomDisplayContainer">
+            <div id="mapid"></div>
+        </div>
+        {% block content2 %}{% endblock content2 %}
+        <br>
+        <div id="successAlert" class="alert alert-success" role="alert" style="display:none;"></div>
+        <div id="errorAlert" class="alert alert-danger" role="alert" style="display:none;"></div>
+    </div>
+</div>
+{% endblock content %}

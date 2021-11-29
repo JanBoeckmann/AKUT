@@ -1,0 +1,18 @@
+{% extends "layouts/navNorm.html" %}
+
+{% block content %}
+<div class="container">
+    {% block content2 %}{% endblock content2 %}
+        <form method="post" enctype="multipart/form-data">
+            <input type="file" id="files" name="file" multiple="multiple" enctype="multipart/form-data"/>
+            <br>
+            <input type="text" id="region" name="region"
+                   placeholder="Name der Region" method="post">
+            <p style="margin-top: 20px;">
+                <input type="submit" value="Hochladen" class="btn btn-lg btn-primary"/>
+            </p>
+        </form>
+    </div>
+    <div class="col-md-4"></div>
+</div>
+{% endblock content %}

@@ -1,0 +1,322 @@
+{% extends "layouts/navLanding.html" %}
+{% block title %}
+<a class="navbar-brand mr-4">AKUT - Das Beratungstool</a>
+{% endblock title %}
+
+{% block content %}
+<div class="container headline-container">
+  <h3>Uploads</h3>
+</div>
+<div class="container fiori-container">
+  <div class="card-deck mb-3 text-center">
+    <div class="card mb-4 box-shadow">
+      <div class="card-header card-header-uploads">
+        <h4 class="my-0 font-weight-normal">Modellgrenzen</h4>
+      </div>
+      <div class="card-body card-body-uploads">
+        <ul class="list-unstyled mt-3 mb-4">
+          <li>Schritt 1:</li>
+          <li>Modellgrenzen-Datei hochladen (Dateiformat: .csv)</li>
+        </ul>
+        <button type="button" class="btn btn-lg btn-block btn-primary btn-uploads"
+                onclick="location.href='{{ url_for('uploadEinzugsgebiete') }}'">Zum Modul
+        </button>
+      </div>
+    </div>
+    <div class="card mb-4 box-shadow">
+      <div class="card-header card-header-uploads">
+        <h4 class="my-0 font-weight-normal">DGM1</h4>
+      </div>
+      <div class="card-body card-body-uploads">
+        <ul class="list-unstyled mt-3 mb-4">
+          <li>Schritt 2:</li>
+          <li>DGM1-Datei hochladen</li>
+          <li>(Dateiformat: .txt)</li>
+        </ul>
+        <button type="button" class="btn btn-lg btn-block btn-primary btn-uploads"
+                onclick="location.href='{{ url_for('upload') }}'">Zum Modul
+        </button>
+      </div>
+    </div>
+    <div class="card mb-4 box-shadow">
+      <div class="card-header card-header-uploads">
+        <h4 class="my-0 font-weight-normal">ALKIS</h4>
+      </div>
+      <div class="card-body card-body-uploads">
+        <ul class="list-unstyled mt-3 mb-4">
+          <li>Schritt 3:</li>
+          <li>ALKIS-Datei hochladen</li>
+          <li>(Dateiformat: .xml)</li>
+        </ul>
+        <button type="button" class="btn btn-lg btn-block btn-primary btn-uploads"
+                onclick="location.href='{{ url_for('uploadKatasterAsXml') }}'">Zum Modul
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="container fiori-container">
+  <div class="card-deck mb-3 text-center">
+    <div class="card mb-4 box-shadow">
+      <div class="card-header card-header-uploads">
+        <h4 class="my-0 font-weight-normal">Kopieren</h4>
+      </div>
+      <div class="card-body card-body-uploads">
+        <ul class="list-unstyled mt-3 mb-4">
+          <li>Hier wird eine bestehende Region kopiert.</li>
+        </ul>
+        <button type="button" class="btn btn-lg btn-block btn-primary btn-uploads"
+                onclick="location.href='{{ url_for('copyRegion') }}'">Zum Modul
+        </button>
+      </div>
+    </div>
+    <div class="card mb-4 box-shadow box-hidden">
+    </div>
+    <div class="card mb-4 box-shadow box-hidden">
+    </div>
+  </div>
+</div>
+<div class="container headline-container">
+  <h3>Eingangsdaten</h3>
+</div>
+<div class="container fiori-container">
+  <div class="card-deck mb-3 text-center">
+    <div class="card mb-4 box-shadow">
+      <div class="card-header card-header-eingangsdaten">
+        <h4 class="my-0 font-weight-normal">Regenspende & Regendauer</h4>
+      </div>
+      <div class="card-body card-body-eingangsdaten">
+        <ul class="list-unstyled mt-3 mb-4">
+          <li>Hier wird die Niederschlagsbelastung bearbeitet.</li>
+        </ul>
+        <button type="button" class="btn btn-lg btn-block btn-primary btn-eingangsdaten"
+                onclick="location.href='{{ url_for('modifyHeaderData') }}'">Zum Modul
+        </button>
+      </div>
+    </div>
+    <div class="card mb-4 box-shadow">
+      <div class="card-header card-header-eingangsdaten">
+        <h4 class="my-0 font-weight-normal">Gebäude, Akteursgruppen & Schadensklassen</h4>
+      </div>
+      <div class="card-body card-body-eingangsdaten">
+        <ul class="list-unstyled mt-3 mb-4">
+          <li>Hier werden Gebäude inkl. zugehöriger Akteursgruppe und Schadensklasse bearbeitet.</li>
+        </ul>
+        <button type="button" class="btn btn-lg btn-block btn-primary btn-eingangsdaten"
+                onclick="location.href='{{ url_for('modifyBuildings') }}'">Zum Modul
+        </button>
+      </div>
+    </div>
+    <div class="card mb-4 box-shadow box-hidden">
+    </div>
+  </div>
+</div>
+<div class="container headline-container">
+  <h3>Modellierung</h3>
+</div>
+<div class="container fiori-container">
+  <div class="card-deck mb-3 text-center">
+    <div class="card mb-4 box-shadow">
+      <div class="card-header card-header-modellierung">
+        <h4 class="my-0 font-weight-normal">Kooperationsbereitschaft</h4>
+      </div>
+      <div class="card-body card-body-modellierung">
+        <ul class="list-unstyled mt-3 mb-4">
+          <li>Hier wird die Kooperationsbereitschaft über die Liegenschaften bearbeitet.</li>
+        </ul>
+        <button type="button" class="btn btn-lg btn-block btn-primary btn-modellierung"
+                onclick="location.href='{{ url_for('showKataster') }}'">Zum Modul
+        </button>
+      </div>
+    </div>
+    <div class="card mb-4 box-shadow">
+      <div class="card-header card-header-modellierung">
+        <h4 class="my-0 font-weight-normal">Rückhaltung & Ableitung</h4>
+      </div>
+      <div class="card-body card-body-modellierung">
+        <ul class="list-unstyled mt-3 mb-4">
+          <li>Hier werden Maßnahmen zur Rückhaltung und Ableitung bearbeitet.</li>
+        </ul>
+        <button type="button" class="btn btn-lg btn-block btn-primary btn-modellierung"
+                onclick="location.href='{{ url_for('modifyGraph') }}'">Zum Modul
+        </button>
+      </div>
+    </div>
+    <div class="card mb-4 box-shadow">
+      <div class="card-header card-header-modellierung">
+        <h4 class="my-0 font-weight-normal">Optimierungsparameter</h4>
+      </div>
+      <div class="card-body card-body-modellierung">
+        <ul class="list-unstyled mt-3 mb-4">
+          <li>Hier werden die Optimierungsparameter bearbeitet.</li>
+        </ul>
+        <button type="button" class="btn btn-lg btn-block btn-primary btn-modellierung"
+                onclick="location.href='{{ url_for('modifyOptimizationParameters') }}'">Zum Modul
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="container fiori-container">
+  <div class="card-deck mb-3 text-center">
+    <div class="card mb-4 box-shadow">
+      <div class="card-header card-header-modellierung">
+        <h4 class="my-0 font-weight-normal">Modellgebiet</h4>
+      </div>
+      <div class="card-body card-body-modellierung">
+        <ul class="list-unstyled mt-3 mb-4">
+          <li>Hier wird die Rasterauflösung angezeigt.</li>
+        </ul>
+        <button type="button" class="btn btn-lg btn-block btn-primary btn-modellierung"
+                onclick="location.href='{{ url_for('showGrid') }}'">Zum Modul
+        </button>
+      </div>
+    </div>
+    <div class="card mb-4 box-shadow box-hidden">
+    </div>
+    <div class="card mb-4 box-shadow box-hidden">
+    </div>
+  </div>
+</div>
+<div class="container headline-container">
+  <h3>Berechnungen</h3>
+</div>
+<div class="container fiori-container">
+  <div class="card-deck mb-3 text-center">
+    <div class="card mb-4 box-shadow">
+      <div class="card-header card-header-berechnungen">
+        <h4 class="my-0 font-weight-normal">Rasterknoten mit Gebäuden & ggf. Maßnahmen</h4>
+      </div>
+      <div class="card-body card-body-berechnungen">
+        <ul class="list-unstyled mt-3 mb-4">
+          <li>Schritt 1:</li>
+          <li>Hier werden die Rasterknoten mit Gebäuden & ggf. Maßnahmen berechnet.</li>
+        </ul>
+        <button type="button" class="btn btn-lg btn-block btn-primary btn-berechnungen"
+                onclick="location.href='{{ url_for('computeMitMassnahme') }}'">Zum Modul
+        </button>
+      </div>
+    </div>
+    <div class="card mb-4 box-shadow">
+      <div class="card-header card-header-berechnungen">
+        <h4 class="my-0 font-weight-normal">Rasterknoten mit Fließwegen</h4>
+      </div>
+      <div class="card-body card-body-berechnungen">
+        <ul class="list-unstyled mt-3 mb-4">
+          <li>Schritt 2:</li>
+          <li>Hier werdem die Rasterknoten mit Fließwegen berechnet.</li>
+        </ul>
+        <button type="button" class="btn btn-lg btn-block btn-primary btn-berechnungen"
+                onclick="location.href='{{ url_for('computeGraphOfRelevantNodes') }}'">Zum Modul
+        </button>
+      </div>
+    </div>
+    <div class="card mb-4 box-shadow">
+      <div class="card-header card-header-berechnungen">
+        <h4 class="my-0 font-weight-normal">Liegenschaften mit Maßnahmen</h4>
+      </div>
+      <div class="card-body card-body-berechnungen">
+        <ul class="list-unstyled mt-3 mb-4">
+          <li>Schritt 3:</li>
+          <li>Hier wird die Verbindung von Liegenschaften zu Maßnahmen berechnet.</li>
+        </ul>
+        <button type="button" class="btn btn-lg btn-block btn-primary btn-berechnungen"
+                onclick="location.href='{{ url_for('computeMassnahmenKataster') }}'">Zum Modul
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="container fiori-container">
+  <div class="card-deck mb-3 text-center">
+    <div class="card mb-4 box-shadow">
+      <div class="card-header card-header-berechnungen">
+        <h4 class="my-0 font-weight-normal">Optimierungsalgorithmus</h4>
+      </div>
+      <div class="card-body card-body-berechnungen">
+        <ul class="list-unstyled mt-3 mb-4">
+          <li>Schritt 4:</li>
+          <li>Hier wird die Lösung berechnet. Dieser Prozess kann etwas dauern.</li>
+        </ul>
+        <button type="button" class="btn btn-lg btn-block btn-primary btn-berechnungen"
+                onclick="location.href='{{ url_for('computeOptimalSolution') }}'">Zum Modul
+        </button>
+      </div>
+    </div>
+    <div class="card mb-4 box-shadow box-hidden">
+    </div>
+    <div class="card mb-4 box-shadow box-hidden">
+    </div>
+  </div>
+</div>
+<div class="container headline-container">
+  <h3>Lösungen</h3>
+</div>
+<div class="container fiori-container">
+  <div class="card-deck mb-3 text-center">
+    <div class="card mb-4 box-shadow">
+      <div class="card-header card-header-loesungen">
+        <h4 class="my-0 font-weight-normal">Handlungsbedarf</h4>
+      </div>
+      <div class="card-body card-body-loesungen">
+        <ul class="list-unstyled mt-3 mb-4">
+          <li>Hier werden der Handlungsbedarf und die Wasserstände angezeigt.</li>
+        </ul>
+        <button type="button" class="btn btn-lg btn-block btn-primary btn-loesungen"
+                onclick="location.href='{{ url_for('showHandlungsbedarf') }}'">Zum Modul
+        </button>
+      </div>
+    </div>
+    <div class="card mb-4 box-shadow">
+      <div class="card-header card-header-loesungen">
+        <h4 class="my-0 font-weight-normal">Wasserflüsse</h4>
+      </div>
+      <div class="card-body card-body-loesungen">
+        <ul class="list-unstyled mt-3 mb-4">
+          <li>Hier werden die Wasserflüsse angezeigt.</li>
+        </ul>
+        <button type="button" class="btn btn-lg btn-block btn-primary btn-loesungen"
+                onclick="location.href='{{ url_for('showFliesswege') }}'">Zum Modul
+        </button>
+      </div>
+    </div>
+    <div class="card mb-4 box-shadow">
+      <div class="card-header card-header-loesungen">
+        <h4 class="my-0 font-weight-normal">Handlungskonzept</h4>
+      </div>
+      <div class="card-body card-body-loesungen">
+        <ul class="list-unstyled mt-3 mb-4">
+          <li>Hier wird die optimale Maßnahmenkombination angezeigt.</li>
+        </ul>
+        <button type="button" class="btn btn-lg btn-block btn-primary btn-loesungen"
+                onclick="location.href='{{ url_for('showMassnahmenSolution') }}'">Zum Modul
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="container headline-container">
+  <h3>Löschen</h3>
+</div>
+<div class="container fiori-container">
+  <div class="card-deck mb-3 text-center">
+    <div class="card mb-4 box-shadow">
+      <div class="card-header card-header-loeschen">
+        <h4 class="my-0 font-weight-normal">Daten Löschen</h4>
+      </div>
+      <div class="card-body card-body-loeschen">
+        <ul class="list-unstyled mt-3 mb-4">
+          <li>Hier können alle Daten zu einer gegebenen Region gelöscht werden</li>
+        </ul>
+        <button type="button" class="btn btn-lg btn-block btn-primary btn-loeschen"
+                onclick="location.href='{{ url_for('delete') }}'">Zum Modul
+        </button>
+      </div>
+    </div>
+    <div class="card mb-4 box-shadow box-hidden">
+    </div>
+    <div class="card mb-4 box-shadow box-hidden">
+    </div>
+  </div>
+</div>
+{% endblock content %}

@@ -1,0 +1,185 @@
+{% extends "layouts/navNorm.html" %}
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/markerCluster/markerCluster.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/markerCluster/markerCluster.Default.css') }}">
+
+<!-- ajax imports -->
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.0/jquery.min.js"></script>
+
+<!-- Leaflet -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.5.1/dist/leaflet.css"
+      integrity="sha512-xwE/Az9zrjBIphAcBb3F6JVqxf46+CDLwfLMHloNu6KEQCAWi6HcDUbeOfBIptF7tcCzusKFjFw2yuvEpDL9wQ=="
+      crossorigin=""/>
+<script src="https://unpkg.com/leaflet@1.5.1/dist/leaflet.js"
+        integrity="sha512-GffPMF3RvMeYyc1LWMHtK8EbPv0iNZ8/oTtHPx9/cc2ILxQ+u905qIwdpULaqDkyBKgOaB57QTMg7ztg8Jm2Og=="
+        crossorigin=""></script>
+
+<!-- Leaflet Draw -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.2/dist/leaflet.draw.css"/>
+<script src="https://cdn.rawgit.com/mejackreed/Leaflet-IIIF/v2.0.1/leaflet-iiif.js"></script>
+<script src="https://unpkg.com/leaflet-draw@1.0.2/dist/leaflet.draw.js"></script>
+
+<script src="{{ url_for('static', filename='js/modifyBuildingsDraw.js') }}"></script>
+<script src="{{ url_for('static', filename='js/saveBuildingPropertiesLocally.js') }}"></script>
+
+<script src="{{ url_for('static', filename='js/modifyBuildingsSaveToDatabase.js') }}"></script>
+<script src="{{ url_for('static', filename='js/markerCluster/leaflet.markercluster.js') }}"></script>
+
+<style>
+            #graph-container {
+              width: 100%;
+              min-height: 600px;
+              margin-bottom: 50px;
+            }
+            #slider-container{
+                margin-bottom: 25px;
+            }
+            #mapid { height: 500px; }
+            #bottomActionsContainer { margin-top: 20px; }
+
+
+</style>
+
+<script>
+            var mapIsLoaded = false;
+            var mymap;
+            var drawnItems;
+            var mapsPlaceholder = [];
+            var selectedRegion = "none";
+            var polygonId = 1;
+            var actualPolygon;
+            var colorMapping = {
+                "None": '#000000',
+                "Buerger": '#3366ff',
+                "Kommune": '#33cccc',
+                "Religion": '#33cc33',
+                "LokaleWirtschaft": '#ffff00',
+                "Landwirtschaft": '#ff5050',
+                "Forstwirtschaft": '#ff00ff'
+            }
+
+            L.Map.addInitHook(function () {
+                mapsPlaceholder.push(this); // Use whatever global scope variable you like.
+            });
+            document.addEventListener("DOMContentLoaded", function(){
+                mymap = L.map('mapid');
+            });
+
+
+</script>
+{% endblock head %}
+
+{% block title %}
+<a class="navbar-brand mr-4">Gebäude, Akteursgruppen & Schadensklassen</a>
+{% endblock title %}
+
+{% block content %}
+<div class="container">
+    <div class="col-md-8">
+        <p>
+            <a class="btn btn-primary" data-toggle="collapse" href="#collapseExample" role="button"
+               aria-expanded="false" aria-controls="collapseExample">
+                Verfügbare Regionen Öffnen/Schließen
+            </a>
+        </p>
+        <div class="collapse" id="collapseExample">
+            <div class="card card-body">
+                <table class="table table-hover">
+                    <thead>
+                    <tr>
+                        <th>Region</th>
+                        <th>Auswählen</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% for header in headers %}
+                    <tr>
+                        <td>{{header[0]}}</td>
+                        <form class="form-inline formDraw" id={{header[-1]}} method="post">
+                            <td>
+                                <button type="submit" class="btn btn-primary">Auswählen</button>
+                            </td>
+                        </form>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <br>
+        <div class="container" style="display:none" id="bottomDisplayContainer">
+            <div id="mapid"></div>
+        </div>
+        <div class="container" style="display:none" id="bottomPropertiesContainer">
+            <div class="container">
+                <div class="row">
+                    <div class="col-sm">
+                        <form id="RadioSchadensklasse">
+                            Schadensklasse:<br>
+                            <fieldset>
+                                <input type="radio" id="schadensklasse1" name="Schadensklasse" value="1">
+                                <label for="schadensklasse1"> Klasse 1 (gering)</label>
+                                <br>
+                                <input type="radio" id="schadensklasse2" name="Schadensklasse" value="2">
+                                <label for="schadensklasse2"> Klasse 2 (mäßig)</label>
+                                <br>
+                                <input type="radio" id="schadensklasse3" name="Schadensklasse" value="3">
+                                <label for="schadensklasse3"> Klasse 3 (hoch)</label>
+                                <br>
+                                <input type="radio" id="schadensklasse4" name="Schadensklasse" value="4">
+                                <label for="schadensklasse4"> Klasse 4 (sehr hoch)</label>
+                            </fieldset>
+                        </form>
+                    </div>
+                    <div class="col-sm">
+                        <form id="RadioAkteur">
+                            Akteur:<br>
+                            <fieldset>
+                                <input type="radio" id="akteurNone" name="Akteur" value="None">
+                                <label for="akteurNone"> Nicht zugeordnet</label>
+                                <br>
+                                <input type="radio" id="akteurBuerger" name="Akteur" value="Buerger">
+                                <label for="akteurBuerger"> Bürger</label>
+                                <br>
+                                <input type="radio" id="akteurKommune" name="Akteur" value="Kommune">
+                                <label for="akteurKommune"> Kommune</label>
+                                <br>
+                                <input type="radio" id="akteurReligion" name="Akteur" value="Religion">
+                                <label for="akteurReligion"> Religiöse Einrichtungen</label>
+                                <br>
+                                <input type="radio" id="akteurLokaleWirtschaft" name="Akteur" value="LokaleWirtschaft">
+                                <label for="akteurLokaleWirtschaft"> Lokale Wirtschaft</label>
+                                <br>
+                                <input type="radio" id="akteurLandwirtschaft" name="Akteur" value="Landwirtschaft">
+                                <label for="akteurLandwirtschaft"> Landwirtschaft</label>
+                                <br>
+                                <input type="radio" id="akteurForstwirtschaft" name="Akteur" value="Forstwirtschaft">
+                                <label for="akteurForstwirtschaft"> Forstwirtschaft</label>
+                            </fieldset>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            <br>
+            <td>
+                <button type="submit" onclick="saveBuildingPropertiesLocally(polygonId)" class="btn btn-primary">Lokal
+                    Speichern
+                </button>
+            </td>
+
+        </div>
+        <div class="container" style="display:none" id="bottomPropertiesContainerPolyline">
+        </div>
+        <div class="container" style="display:none" id="bottomActionsContainer">
+            <form class="form-inline formSave" id="saveToDatabase" method="post">
+                <td>
+                    <button type="submit" class="btn btn-primary">In Datenbank Speichern</button>
+                </td>
+            </form>
+        </div>
+        <br>
+        <div id="successAlert" class="alert alert-success" role="alert" style="display:none;"></div>
+        <div id="errorAlert" class="alert alert-danger" role="alert" style="display:none;"></div>
+    </div>
+</div>
+{% endblock content %}

@@ -1,0 +1,51 @@
+{% extends "layouts/contentShow.html" %}
+{% block head %}
+<!-- ajax imports -->
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.0/jquery.min.js"></script>
+
+<!-- Leaflet -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.5.1/dist/leaflet.css"
+      integrity="sha512-xwE/Az9zrjBIphAcBb3F6JVqxf46+CDLwfLMHloNu6KEQCAWi6HcDUbeOfBIptF7tcCzusKFjFw2yuvEpDL9wQ=="
+      crossorigin=""/>
+<script src="https://unpkg.com/leaflet@1.5.1/dist/leaflet.js"
+        integrity="sha512-GffPMF3RvMeYyc1LWMHtK8EbPv0iNZ8/oTtHPx9/cc2ILxQ+u905qIwdpULaqDkyBKgOaB57QTMg7ztg8Jm2Og=="
+        crossorigin=""></script>
+
+<script src="{{ url_for('static', filename='js/showOptimalSolutionDisplay.js') }}"></script>
+
+<style>
+            #graph-container {
+              width = 100%;
+              min-height: 600px;
+              margin-bottom: 50px;
+            }
+            #slider-container{
+                margin-bottom: 25px;
+            }
+            #mapid { height: 500px; }
+            #bottomActionsContainer { margin-top: 20px; }
+
+</style>
+
+<script>
+            var mapIsLoaded = false;
+            var mymap;
+            var drawnItems;
+            var mapsPlaceholder = [];
+            var selectedRegion = "none";
+
+            L.Map.addInitHook(function () {
+                mapsPlaceholder.push(this); // Use whatever global scope variable you like.
+            });
+            document.addEventListener("DOMContentLoaded", function(){
+                mymap = L.map('mapid', {
+                    maxZoom: 22
+                });
+            });
+
+</script>
+{% endblock head %}
+
+{% block title %}
+<a class="navbar-brand mr-4">Display</a>
+{% endblock title %}

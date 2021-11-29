@@ -1,0 +1,19 @@
+{% extends "layouts/navNorm.html" %}
+{% block title %}
+<a class="navbar-brand mr-4">Löschen</a>
+{% endblock title %}
+
+{% block content %}
+<div class="container">
+    <div class="col-md-4">
+        <form method="post" enctype="multipart/form-data">
+            <input type="text" id="region" name="region"
+                   placeholder="Region Name" method="post">
+            <p style="text-align: right; margin-top: 120px;">
+                <input type="submit" value="Löschen" class="btn btn-lg btn-primary"/>
+            </p>
+        </form>
+    </div>
+    <div class="col-md-4"></div>
+</div>
+{% endblock content %}

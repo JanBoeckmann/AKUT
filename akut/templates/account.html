@@ -1,0 +1,9 @@
+{% extends "layouts/navAccount.html" %}
+
+{% block title %}
+<a class="navbar-brand mr-4">Account</a>
+{% endblock title %}
+
+{% block content %}
+<h1>{{ current_user.username }} </h1>
+{% endblock content %}

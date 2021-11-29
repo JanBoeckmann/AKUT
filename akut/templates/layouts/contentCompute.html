@@ -1,0 +1,34 @@
+{% extends "layouts/navNorm.html" %}
+
+{% block content %}
+<div class="container">
+    <div class="col-md-4">
+        <table class="table table-hover">
+            <thead>
+            <tr>
+                <th>Datensatz</th>
+                <th>hochgeladen am</th>
+                <th>berechnen</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for header in headers %}
+            <tr>
+                <td>{{header[0]}}</td>
+                <td>{{header[2]}}</td>
+                <form class="form-inline" id={{header[-1]}} method="post">
+                    <td>
+                        <button type="submit" class="btn btn-primary">berechnen</button>
+                    </td>
+                </form>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        <br>
+        <div id="successAlert" class="alert alert-success" role="alert" style="display:none;"></div>
+        <div id="errorAlert" class="alert alert-danger" role="alert" style="display:none;"></div>
+    </div>
+    <div class="col-md-4"></div>
+</div>
+{% endblock content %}

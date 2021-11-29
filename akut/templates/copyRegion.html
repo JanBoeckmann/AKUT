@@ -1,0 +1,35 @@
+{% extends "layouts/navNorm.html" %}
+{% block head %}
+<!-- ajax imports -->
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.0/jquery.min.js"></script>
+
+<script src="{{ url_for('static', filename='js/copyRegionProcess.js') }}"></script>
+{% endblock head %}
+
+{% block title %}
+<a class="navbar-brand mr-4">Kopieren</a>
+{% endblock title %}
+
+{% block content %}
+<div class="container">
+    <div class="col-md-8">
+        <div class="container" id="bottomDisplayContainer">
+            <form>
+                Von:<br>
+                <input type="text" name="amount" id="inputFrom"><br>
+                Nach:<br>
+                <input type="text" name="duration" id="inputTo">
+            </form>
+            <br>
+            <form class="form-inline formSave" id="saveToDatabase" method="post">
+                <td>
+                    <button type="submit" class="btn btn-primary">In Datenbank Speichern</button>
+                </td>
+            </form>
+        </div>
+        <br>
+        <div id="successAlert" class="alert alert-success" role="alert" style="display:none;"></div>
+        <div id="errorAlert" class="alert alert-danger" role="alert" style="display:none;"></div>
+    </div>
+</div>
+{% endblock content %}
