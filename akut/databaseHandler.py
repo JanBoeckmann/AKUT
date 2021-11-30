@@ -1011,7 +1011,8 @@ class databaseHandler:
         print(allBuildings)
         to_db_5 = []
         to_db_1 = []
-        nodes_with_buildings_25 = dict()
+        nodes_with_buildings_25 = set()
+        nodes_with_massnahmen_25 = set()
         auffangbeckenAsPolygons = {}
         buildingsAsPolygons = {}
         leitgraeben_as_polylines = dict()
@@ -1037,56 +1038,24 @@ class databaseHandler:
                     checked_grids[actual_grid_to_check] = 1
                     actual_grid_pos, actual_grid_poly = self.computeGridPolygon(actual_grid_to_check, 25)
                     if Polygon(actual_grid_poly).intersects(buildingsAsPolygons[building]):
-                        nodes_with_buildings_25[actual_grid_to_check] = 1
+                        nodes_with_buildings_25.add(actual_grid_to_check)
                         # if actual grid to ckeck is not in waterHeight['waterHeight'], this means that the water height is 0
-                        if actual_grid_to_check not in waterHeight['waterHeight']:
-                            waterHeight['waterHeight'][actual_grid_to_check] = 0
-                        if waterHeight['waterHeight'][actual_grid_to_check] > 0:
-                            affected_grids_25[(actual_grid_to_check[0], actual_grid_to_check[1])] = (1, 1, 1, 0, actual_grid_to_check[0], actual_grid_to_check[1])
-                            for i in range(5):
-                                actual_grid_to_check_x_5 = actual_grid_to_check[0] - 10 + i * 5
-                                for j in range(5):
-                                    actual_grid_to_check_y_5 = actual_grid_to_check[1] - 10 + j * 5
-                                    affected_grids_5[(actual_grid_to_check_x_5, actual_grid_to_check_y_5)] = (0, 1, actual_grid_to_check_x_5, actual_grid_to_check_y_5)
-                        else:
-                            affected_grids_25[(actual_grid_to_check[0], actual_grid_to_check[1])] = (1, 1, 0, 1, actual_grid_to_check[0], actual_grid_to_check[1])
+                        affected_grids_25[(actual_grid_to_check[0], actual_grid_to_check[1])] = (1, 1, 1, 0, actual_grid_to_check[0], actual_grid_to_check[1])
+                        for i in range(5):
+                            actual_grid_to_check_x_5 = actual_grid_to_check[0] - 10 + i * 5
+                            for j in range(5):
+                                actual_grid_to_check_y_5 = actual_grid_to_check[1] - 10 + j * 5
+                                affected_grids_5[(actual_grid_to_check_x_5, actual_grid_to_check_y_5)] = (0, 1, actual_grid_to_check_x_5, actual_grid_to_check_y_5)
+                        affected_grids_25[(actual_grid_to_check[0], actual_grid_to_check[1])] = (1, 1, 0, 1, actual_grid_to_check[0], actual_grid_to_check[1])
+
                         grids_queue.append((actual_grid_to_check[0] + 25, actual_grid_to_check[1]))
                         grids_queue.append((actual_grid_to_check[0] - 25, actual_grid_to_check[1]))
                         grids_queue.append((actual_grid_to_check[0], actual_grid_to_check[1] + 25))
                         grids_queue.append((actual_grid_to_check[0], actual_grid_to_check[1] - 25))
 
-        '''
-            building_utm = utm.from_latlon(allBuildings[building]["yCoord"], allBuildings[building]["xCoord"], self.utm_zone, 'N')
-            building_xutm = building_utm[0]
-            building_yutm = building_utm[1]
-            building_xutm_25 = int(self.myround(building_xutm, 25))
-            building_yutm_25 = int(self.myround(building_yutm, 25))
-            nodes_with_buildings_25[(building_xutm_25, building_yutm_25)] = 1
-            if (building_xutm_25, building_yutm_25) in relevantNodes:
-                if waterHeight['waterHeight'][(building_xutm_25, building_yutm_25)] > 0:
-                    building_xutm_5 = int(self.myround(building_xutm, 5))
-                    building_yutm_5 = int(self.myround(building_yutm, 5))
-                    for i5 in range(5):
-                        iteration_utm_x = building_xutm_25 + (i5 - 2) * 5
-                        for j5 in range(5):
-                            iteration_utm_y = building_yutm_25 + (j5 - 2) * 5
-                            if iteration_utm_x != building_xutm_5 or iteration_utm_y != building_yutm_5:
-                                affected_grids_5[(iteration_utm_x, iteration_utm_y)] = (0, 1, iteration_utm_x, iteration_utm_y)
-                            else:
-                                affected_grids_5[(iteration_utm_x, iteration_utm_y)] = (0, 1, iteration_utm_x, iteration_utm_y)
-                    for i1 in range(5):
-                        iteration_utm_x = building_xutm_5 + (i1 - 2)
-                        for j1 in range(5):
-                            iteration_utm_y = building_yutm_5 + (j1 - 2)
-                            affected_grids_1[(iteration_utm_x, iteration_utm_y)] = (0, 0, iteration_utm_x, iteration_utm_y)
-        '''
-
         for node in connectedNodes:
-            if node in relevantNodes:
-                if waterHeight['waterHeight'][node] > 0 and node in nodes_with_buildings_25.keys():
-                    affected_grids_25[(node[0], node[1])] = (1, 1, 1, 0, node[0], node[1])
-                else:
-                    affected_grids_25[(node[0], node[1])] = (1, 1, 0, 1, node[0], node[1])
+            if node in relevantNodes and node in nodes_with_buildings_25:
+                affected_grids_25[(node[0], node[1])] = (1, 1, 1, 0, node[0], node[1])
             else:
                 affected_grids_25[(node[0], node[1])] = (0, 1, 0, 1, node[0], node[1])
 
@@ -1106,6 +1075,7 @@ class databaseHandler:
                     checked_grids[actual_grid_to_check] = 1
                     actual_grid_pos, actual_grid_poly = self.computeGridPolygon(actual_grid_to_check, 25)
                     if Polygon(actual_grid_poly).intersects(auffangbeckenAsPolygons[auffangbecken]):
+                        nodes_with_massnahmen_25.add(actual_grid_to_check)
                         if affected_grids_25[actual_grid_to_check][2] == 0:
                             affected_grids_25[(actual_grid_to_check[0], actual_grid_to_check[1])] = (1, 1, 1, 0, actual_grid_to_check[0], actual_grid_to_check[1])
                             for i in range(5):
@@ -1134,7 +1104,7 @@ class databaseHandler:
                     checked_grids[actual_grid_to_check] = 1
                     actual_grid_pos, actual_grid_poly = self.computeGridPolygon(actual_grid_to_check, 25)
                     if Polygon(actual_grid_poly).intersects(leitgraeben_as_polylines[leitgraben]):
-                        #if affected_grids_25[actual_grid_to_check][2] == 0:
+                        nodes_with_massnahmen_25.add(actual_grid_to_check)
                         affected_grids_25[(actual_grid_to_check[0], actual_grid_to_check[1])] = (1, 1, 1, 0, actual_grid_to_check[0], actual_grid_to_check[1])
                         for i in range(5):
                             actual_grid_to_check_x_5 = actual_grid_to_check[0] - 10 + i * 5
@@ -1166,17 +1136,61 @@ class databaseHandler:
         myCursor.executemany("UPDATE regionsDGM1 SET resolveFurther = ?, willBeInGraph = ? WHERE region = \"" + self.region + "\" AND xutm = ? AND yutm = ?", to_db_1)
         conn.commit()
         conn.close()
-        print("Successfully updated relevant and connected nodes")
+        print("Successfully updated relevant and connected nodes sizing all buildings at 5m grid size")
 
-    def updateRelevantFromFrontend(self, dataFromFrontend):
-        to_db = []
-        for nodeId in dataFromFrontend["Relevant"]:
-            to_db.append((dataFromFrontend["Relevant"][nodeId], nodeId))
+        self.update_relevant_readjust_grid_size_at_buildings(nodes_with_buildings_25, nodes_with_massnahmen_25)
+
+    def update_relevant_readjust_grid_size_at_buildings(self, nodes_with_buildings_25, nodes_with_massnahmen_25):
+        gridData = self.readGridForDisplay()
+        headerData = self.readRegionHeader()
+        allAuffangbecken = self.readAuffangbecken()
+        allLeitgraeben = self.read_leitgraeben()
+        all_buildings = self.readBuildingsForDisplay()
+        optimization_parameters = self.read_optimization_parameters(certain_param_id="init")
+        optimization_parameters = optimization_parameters[list(optimization_parameters.keys())[0]]
+        gridInstanceGraph = instanceGraph(self.region, gridData["Position"], gridData["Relevant"], gridData["GeodesicHeight"], gridData["massnahmenOnNode"], headerData[6], allAuffangbecken, allLeitgraeben, all_buildings, headerData[7], headerData[8], gridData["which_DGM_from"])
+        floodingTimes, waterAmounts, modGraph, modArea, floodedNodes = gridInstanceGraph.computeInitialSolution(None)
+
+        nodes_to_check = nodes_with_buildings_25 - nodes_with_massnahmen_25
+
+        affected_grids_5 = dict()
+        affected_grids_25 = dict()
+
+        for n25 in nodes_to_check:
+            node_flooded = False
+            remember_5m_nodes = set()
+            for i in range(5):
+                n5x = n25[0] - 10 + i * 5
+                for j in range(5):
+                    n5y = n25[1] - 10 + j * 5
+                    remember_5m_nodes.add((n5x, n5y))
+                    if ((n5x, n5y)) in floodedNodes:
+                        node_flooded = True
+            if not node_flooded:
+                for n5 in remember_5m_nodes:
+                    affected_grids_5[n5] = (0, 0, n5[0], n5[1])
+                affected_grids_25[n25] = (1, 1, 0, 1, n25[0], n25[1])
+
+        to_db = self.dict_to_array(affected_grids_25)
+        to_db_5 = self.dict_to_array(affected_grids_5)
+
         conn = self.establishConnection()
         myCursor = conn.cursor()
-        myCursor.executemany("UPDATE regionsDGM25 SET relevantForGraph = ? WHERE region = \"" + self.region + "\" AND id = ?", to_db)
+        myCursor.executemany("UPDATE regionsDGM25 SET relevantForGraph = ?, connectedToRelevantNodes = ?, resolveFurther = ?, willBeInGraph = ? WHERE region = \"" + self.region + "\" AND xutm = ? AND yutm = ?", to_db)
+        myCursor.executemany("UPDATE regionsDGM5 SET resolveFurther = ?, willBeInGraph = ? WHERE region = \"" + self.region + "\" AND xutm = ? AND yutm = ?", to_db_5)
         conn.commit()
         conn.close()
+        print("Successfully updated relevant and connected nodes reiterate over buildings")
+
+    def updateRelevantFromFrontend(self, dataFromFrontend):
+            to_db = []
+            for nodeId in dataFromFrontend["Relevant"]:
+                to_db.append((dataFromFrontend["Relevant"][nodeId], nodeId))
+            conn = self.establishConnection()
+            myCursor = conn.cursor()
+            myCursor.executemany("UPDATE regionsDGM25 SET relevantForGraph = ? WHERE region = \"" + self.region + "\" AND id = ?", to_db)
+            conn.commit()
+            conn.close()
 
     def computeOptimalSolution(self):
         gridData = self.readGridForDisplay()

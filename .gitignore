@@ -129,4 +129,5 @@ dmypy.json
 .pyre/
 /database.db
 /akut/database.sqbpro
+/akut/login.db
 /database.sqbpro

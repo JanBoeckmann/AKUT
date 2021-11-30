@@ -491,11 +491,11 @@ class instanceGraph:
             i = i + 1
         print("end while")
         waterAmountsLastEntryCorrection()
-        waterHeight = computeWaterHeightInOriginalGraph()
-        floodedInOriginalGraph = computeFloodedInOriginalGraph()
+        # waterHeight = computeWaterHeightInOriginalGraph()
+        # floodedInOriginalGraph = computeFloodedInOriginalGraph()
 
         #now recalculate flows from scratch with information about flooded nodes
         floodedNodes.remove(lastFloodedLeave)
         #equationSolver = linearEquationSolverForFlows(graphWithGeodesicHeightAfterAuffangbeckenBuilt, waterHeight, self.rain, self.timeSteps, self.gridSize)
         #waterHeight = equationSolver.solveLinearEquationSystem()
-        return floodingTimes, waterAmounts, modGraph, modArea, waterHeight
+        return floodingTimes, waterAmounts, modGraph, modArea, floodedNodes
