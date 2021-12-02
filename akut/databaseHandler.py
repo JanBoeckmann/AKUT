@@ -1006,13 +1006,13 @@ class databaseHandler:
         print("Computing list of relevant and connected nodes")
         relevantNodes, connectedNodes = gridInstanceGraph.computeListOfRelevantAndConnectedNodes()
         print("Computing initial solution")
-        floodingTimes, waterAmounts, modGraph, modArea, waterHeight = gridInstanceGraph.computeInitialSolution(None)
+        floodingTimes, waterAmounts, modGraph, modArea, water_height_in_25 = gridInstanceGraph.computeInitialSolution(None)
         allBuildings = self.readBuildingsForDisplay()
-        print(allBuildings)
         to_db_5 = []
         to_db_1 = []
         nodes_with_buildings_25 = set()
         nodes_with_massnahmen_25 = set()
+        remember_buildings_25 = dict()
         auffangbeckenAsPolygons = {}
         buildingsAsPolygons = {}
         leitgraeben_as_polylines = dict()
@@ -1039,6 +1039,10 @@ class databaseHandler:
                     actual_grid_pos, actual_grid_poly = self.computeGridPolygon(actual_grid_to_check, 25)
                     if Polygon(actual_grid_poly).intersects(buildingsAsPolygons[building]):
                         nodes_with_buildings_25.add(actual_grid_to_check)
+                        if actual_grid_to_check in remember_buildings_25.keys():
+                            remember_buildings_25[actual_grid_to_check].add(building)
+                        else:
+                            remember_buildings_25[actual_grid_to_check] = set([building])
                         # if actual grid to ckeck is not in waterHeight['waterHeight'], this means that the water height is 0
                         affected_grids_25[(actual_grid_to_check[0], actual_grid_to_check[1])] = (1, 1, 1, 0, actual_grid_to_check[0], actual_grid_to_check[1])
                         for i in range(5):
@@ -1054,8 +1058,11 @@ class databaseHandler:
                         grids_queue.append((actual_grid_to_check[0], actual_grid_to_check[1] - 25))
 
         for node in connectedNodes:
-            if node in relevantNodes and node in nodes_with_buildings_25:
-                affected_grids_25[(node[0], node[1])] = (1, 1, 1, 0, node[0], node[1])
+            if node in relevantNodes:
+                if node in nodes_with_buildings_25:
+                    affected_grids_25[(node[0], node[1])] = (1, 1, 1, 0, node[0], node[1])
+                else:
+                    affected_grids_25[(node[0], node[1])] = (1, 1, 0, 1, node[0], node[1])
             else:
                 affected_grids_25[(node[0], node[1])] = (0, 1, 0, 1, node[0], node[1])
 
@@ -1138,18 +1145,18 @@ class databaseHandler:
         conn.close()
         print("Successfully updated relevant and connected nodes sizing all buildings at 5m grid size")
 
-        self.update_relevant_readjust_grid_size_at_buildings(nodes_with_buildings_25, nodes_with_massnahmen_25)
+        self.update_relevant_readjust_grid_size_at_buildings(nodes_with_buildings_25, nodes_with_massnahmen_25, remember_buildings_25, water_height_in_25)
 
-    def update_relevant_readjust_grid_size_at_buildings(self, nodes_with_buildings_25, nodes_with_massnahmen_25):
+    def update_relevant_readjust_grid_size_at_buildings(self, nodes_with_buildings_25, nodes_with_massnahmen_25, remember_buildings_25, water_height_in_25):
         gridData = self.readGridForDisplay()
         headerData = self.readRegionHeader()
         allAuffangbecken = self.readAuffangbecken()
         allLeitgraeben = self.read_leitgraeben()
         all_buildings = self.readBuildingsForDisplay()
-        optimization_parameters = self.read_optimization_parameters(certain_param_id="init")
-        optimization_parameters = optimization_parameters[list(optimization_parameters.keys())[0]]
         gridInstanceGraph = instanceGraph(self.region, gridData["Position"], gridData["Relevant"], gridData["GeodesicHeight"], gridData["massnahmenOnNode"], headerData[6], allAuffangbecken, allLeitgraeben, all_buildings, headerData[7], headerData[8], gridData["which_DGM_from"])
-        floodingTimes, waterAmounts, modGraph, modArea, floodedNodes = gridInstanceGraph.computeInitialSolution(None)
+        floodingTimes, waterAmounts, modGraph, modArea, floodedNodes, water_height = gridInstanceGraph.computeInitialSolution(None)
+
+        threshold_when_to_resolve_further = 0.05
 
         nodes_to_check = nodes_with_buildings_25 - nodes_with_massnahmen_25
 
@@ -1165,7 +1172,17 @@ class databaseHandler:
                     n5y = n25[1] - 10 + j * 5
                     remember_5m_nodes.add((n5x, n5y))
                     if ((n5x, n5y)) in floodedNodes:
-                        node_flooded = True
+                        actual_grid_pos, actual_grid_poly = self.computeGridPolygon((n5x, n5y), 5)
+                        for b in remember_buildings_25[n25]:
+                            if Polygon(actual_grid_poly).intersects(Polygon(all_buildings[b]["position"])):
+                                if (n5x, n5y) in water_height.keys():
+                                    if water_height[(n5x, n5y)] >= threshold_when_to_resolve_further:
+                                        node_flooded = True
+
+            if n25 in water_height_in_25.keys():
+                if water_height_in_25[n25] > 0:
+                    node_flooded = True
+
             if not node_flooded:
                 for n5 in remember_5m_nodes:
                     affected_grids_5[n5] = (0, 0, n5[0], n5[1])

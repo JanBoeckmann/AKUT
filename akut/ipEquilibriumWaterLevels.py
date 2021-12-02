@@ -38,6 +38,7 @@ class ipEquilibriumWaterLevels:
             self.compound_exactness = 0.05 #in Meters
         # print("compute compounded graph")
         self.cc_graph, self.cc_area, self.cc_geodesic_height, self.cc_ratios, self.connected_components_as_mapping_with_representation, self.mapping_representator_per_node = self.compute_compounded_graph()
+        # print(self.cc_ratios)
         self.extendedGraph = self.createExtendedGraph()
         self.printSolutions = False
         self.flooded, self.activeNodes, self.waterHeight, self.auffangbecken_solution, self.leitgraeben_solution, self.flow_through_nodes, self.handlungsbedarf = self.solve()
@@ -545,8 +546,12 @@ class ipEquilibriumWaterLevels:
                     if len(successors) >= 2:
                         for p1 in range(len(successors)):
                             for p2 in range(p1 + 1, len(successors)):
+                                # #old constraints
                                 myModel.addGenConstrIndicator(binaryHelpForFlowDistribution[(n, successors[p2]), t], True, flows[(n, successors[p1]), t] - (self.cc_ratios[(n, successors[p1])] / self.cc_ratios[(n, successors[p2])] * flows[(n, successors[p2]), t]), gurobi.GRB.LESS_EQUAL, 0, name="flowDistribution")
                                 myModel.addGenConstrIndicator(binaryHelpForFlowDistribution[(n, successors[p1]), t], True, flows[(n, successors[p2]), t] - (self.cc_ratios[(n, successors[p2])] / self.cc_ratios[(n, successors[p1])] * flows[(n, successors[p1]), t]), gurobi.GRB.LESS_EQUAL, 0, name="flowDistribution")
+
+                                # myModel.addGenConstrIndicator(binaryHelpForFlowDistribution[(n, successors[p2]), t], True, round(self.cc_ratios[(n, successors[p2])], 6) * 1e+6 * flows[(n, successors[p1]), t] - (round(self.cc_ratios[(n, successors[p1])], 6) * 1e+6 * flows[(n, successors[p2]), t]), gurobi.GRB.LESS_EQUAL, 0, name="flowDistribution")
+                                # myModel.addGenConstrIndicator(binaryHelpForFlowDistribution[(n, successors[p1]), t], True, round(self.cc_ratios[(n, successors[p1])], 6) * 1e+6 * flows[(n, successors[p2]), t] - (round(self.cc_ratios[(n, successors[p2])], 6) * 1e+6 * flows[(n, successors[p1]), t]), gurobi.GRB.LESS_EQUAL, 0, name="flowDistribution")
 
             #originalDirection
             for e in self.cc_graph.edges:

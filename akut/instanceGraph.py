@@ -435,14 +435,18 @@ class instanceGraph:
                         if v in floodedNodesCopy:
                             floodedNodesCopy.remove(v)
             floodedNodesCopy.remove(lastFloodedLeave)
+            already_added_nodes = set()
             while len(floodedNodesCopy) > 0:
                 newFloodedNodesCopy = []
                 for v in floodedNodesCopy:
                     lowestParent = getLowestParent(graphWithGeodesicHeightAfterAuffangbeckenBuilt, v)
                     if lowestParent in waterHeight:
                         waterHeight[v] = waterHeight[lowestParent] + (geodesicHeight[lowestParent] - geodesicHeight[v])
+                        # already_added_nodes.add(v)
                     else:
-                        newFloodedNodesCopy.append(v)
+                        if v not in already_added_nodes:
+                            newFloodedNodesCopy.append(v)
+                            already_added_nodes.add(v)
                 floodedNodesCopy = newFloodedNodesCopy
             return waterHeight
 
@@ -491,11 +495,11 @@ class instanceGraph:
             i = i + 1
         print("end while")
         waterAmountsLastEntryCorrection()
-        # waterHeight = computeWaterHeightInOriginalGraph()
+        waterHeight = computeWaterHeightInOriginalGraph()
         # floodedInOriginalGraph = computeFloodedInOriginalGraph()
 
         #now recalculate flows from scratch with information about flooded nodes
         floodedNodes.remove(lastFloodedLeave)
         #equationSolver = linearEquationSolverForFlows(graphWithGeodesicHeightAfterAuffangbeckenBuilt, waterHeight, self.rain, self.timeSteps, self.gridSize)
         #waterHeight = equationSolver.solveLinearEquationSystem()
-        return floodingTimes, waterAmounts, modGraph, modArea, floodedNodes
+        return floodingTimes, waterAmounts, modGraph, modArea, floodedNodes, waterHeight
