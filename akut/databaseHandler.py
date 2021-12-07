@@ -20,7 +20,7 @@ class databaseHandler:
         self.delimiter = ";"
         self.utm_zone = 32
         self.utm_zone_kataster = 32
-        self.customer = "Ersfeld"
+        self.customer = "Other"
 
 
     def establishConnection(self):
@@ -156,7 +156,7 @@ class databaseHandler:
                 delimiter = ";"
                 fieldnames = ["d1", "d2", "X", "d3", "Y", "d4", "d5", "d6", "d7", "d8", "d9", "DPFILL10_1"]
                 fieldnames = ["X", "Y", "DPFILL10_1"]
-            if self.customer == "KMB" or self.customer == "Ersfeld":
+            if self.customer == "KMB" or self.customer == "Ersfeld" or self.customer == "Puderbach":
                 delimiter = ";"
                 fieldnames = ["X", "Y", "DPFILL10_1"]
             dr = csv.DictReader(file, fieldnames=fieldnames, delimiter=delimiter)
