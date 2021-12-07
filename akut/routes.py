@@ -264,7 +264,7 @@ def uploadKatasterAsXml():
             return redirect(request.url)
         myDatabaseHandler = databaseHandler(request.form.get("region"), "database.db")
         file.save(os.path.join(folder, filename))
-        if filename.rsplit('.', 1)[1].lower() == "xml":
+        if filename.rsplit('.', 1)[1].lower() in ["xml", "zip"]:
             myDatabaseHandler.writeUploadedKatasterAsXmlToDatabase(folder, filename)
         elif filename.rsplit('.', 1)[1].lower() == "shp":
             myDatabaseHandler.writeUploadedKatasterAsShpToDatabase(folder, filename)

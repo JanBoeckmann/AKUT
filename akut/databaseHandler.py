@@ -12,6 +12,7 @@ from shapely.geometry import Polygon, Point, LineString
 from akut.instanceGraph import *
 from akut.instanceGraphForDGM25 import *
 import networkx as nx
+import zipfile
 
 class databaseHandler:
     def __init__(self, region, database):
@@ -286,9 +287,8 @@ class databaseHandler:
                 returned_aray.append((x_utm, y_utm))
             return returned_aray
 
-        def get_buildings_in_einzugesgebiet():
-            root = ET.parse(os.path.join(path, filename)).getroot()
-            buildings_id = 0
+        def get_buildings_in_einzugesgebiet(fn, id):
+            root = ET.parse(os.path.join(path, fn)).getroot()
             # for child in root:
             #     print(child)
             if self.customer == "Alzey" or self.customer == "KMB":
@@ -318,12 +318,13 @@ class databaseHandler:
                         pos_array_latlon.append(conversedCoordinates)
                     building_polygon = Polygon(pos_array_latlon)
                     if building_polygon.intersects(einzugsgebietePolygon):
-                        buildings_id = buildings_id + 1
-                        buildings_in_dict[buildings_id] = {"position": pos_array_latlon, "gebaeudeklasse": gebaeudeklasse.text}
+                        id = id + 1
+                        buildings_in_dict[id] = {"position": pos_array_latlon, "gebaeudeklasse": gebaeudeklasse.text}
+            return id
 
 
 
-        def get_kataster_in_einzugsgebiet():
+        def get_kataster_in_einzugsgebiet(fn, id):
             kataster_akteur_mapping = {"AX_IndustrieUndGewerbeflaeche": "None",
                                        "AX_FlächeGemischterNutzung": "None",
                                        "AX_FlaecheBesondererFunktionalerPraegung": "None",
@@ -343,8 +344,7 @@ class databaseHandler:
                                        "AX_Sumpf": "None",
                                        "AX_UnlandVegetationsloseFlaeche": "None",
                                        }
-            kataster_id = 0
-            root = ET.parse(os.path.join(path, filename)).getroot()
+            root = ET.parse(os.path.join(path, fn)).getroot()
             if self.customer == "Alzey" or self.customer == "KMB":
                 geaenderte_objekte = root.find('{http://www.adv-online.de/namespaces/adv/gid/6.0}geaenderteObjekte')
                 iterator = geaenderte_objekte.find('{http://www.adv-online.de/namespaces/adv/gid/wfs}Transaction')
@@ -377,9 +377,10 @@ class databaseHandler:
                         pos_array_latlon.append(conversedCoordinates)
                     kataster_polygon = Polygon(pos_array_latlon)
                     if kataster_polygon.intersects(einzugsgebietePolygon):
-                        kataster_id = kataster_id + 1
-                        kataster_in_dict[kataster_id] = {"position": pos_array_latlon,
+                        id = id + 1
+                        kataster_in_dict[id] = {"position": pos_array_latlon,
                                                          "akteur": remember_akteur}
+            return id
 
         def extract_indices():
             buildings_in_db = self.readBuildingsForDisplay()
@@ -398,10 +399,21 @@ class databaseHandler:
         einzugsgebietePolygon = Polygon(einzugsgebieteData["Einzugsgebiete"])
         # max_id_buildings, max_id_kataster = extract_indices()
         max_id_buildings, max_id_kataster = 0, 0
+        buildings_id = 0
+        kataster_id = 0
         buildings_in_dict = dict()
         kataster_in_dict = dict()
-        get_buildings_in_einzugesgebiet()
-        get_kataster_in_einzugsgebiet()
+        if filename.rsplit('.', 1)[1].lower() == "xml":
+            buildings_id = get_buildings_in_einzugesgebiet(filename, buildings_id)
+            kataster_id = get_kataster_in_einzugsgebiet(filename, kataster_id)
+        elif filename.rsplit('.', 1)[1].lower() == "zip":
+            with zipfile.ZipFile(os.path.join(path, filename), "r") as f:
+                f.extractall(path)
+                for fn in f.namelist():
+                    if fn.find(".") >= 0 and fn.rsplit('.', 1)[1].lower() == "xml" and fn[0:1] != "_":
+                        buildings_id = get_buildings_in_einzugesgebiet(fn, buildings_id)
+                        kataster_id = get_kataster_in_einzugsgebiet(fn, kataster_id)
+
         print("len of kataster in dict: ", len(kataster_in_dict))
         print(kataster_in_dict)
         gebaeudeklasse_to_schadensklasse_as_dict = self.read_gebaeudeklasse_to_schadensklasse()
