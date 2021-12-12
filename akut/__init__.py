@@ -21,7 +21,7 @@ bcrypt = Bcrypt(app)
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
 login_manager.login_message_category = 'info'
-from akut.models import User
+from akut.models import User, Region, Association
 from akut.forms import RegistrationForm, LoginForm
 from akut import routes
 

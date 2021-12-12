@@ -1,4 +1,4 @@
-from akut import app
+from akut import app, login_db
 from akut.models import LoggingMiddleware
 
 if __name__ == "__main__":
@@ -6,15 +6,19 @@ if __name__ == "__main__":
     # app.run(port=4000, debug=True, host='0.0.0.0', threaded=False, processes=10)
     app.run(port=4000, debug=True, host='0.0.0.0', threaded=False)
 
-# <- TODO ->
-#   regionen nur für nutzer, die hochgeladen haben & filter, wenn user regionen aufrufr // admin-user;
-#   exra tabelle user_region (rastergr. 1 hardcoden) in login.db
+"""
+TODO
+- filter, wenn user regionen aufruft -> database.db > zusammenfügen -> rout-Code in entsprechende databasehandler-funktion
+- uploads in login.db -> siehe databaseHandler
+- models (dgmi, headers...) <- datenbanken; über id
 
-# <- TODO 2 ->
-# - import * spezifizieren?
-# - PW vergessen?
-# - database.db path /// -> hardcoded in database.sqbpro?
-# - "Verfügbare xyz öffnen/schließen" einheitlich (z.B. bei blauen)?
-# - Delete (auf landingPage verlint) = DeleteBuildings (ungenutzt) identisch?!
-# - Vereinheitlichung Englisch->Deutsch in manchen templates
-# - Bootstrap-Version?
+- Association als model
+- requirements fehler > egal
+- import * spezifizieren > sinnvoll
+- PW vergessen? > sinnvoll
+- database.db path /// -> hardcoded in database.sqbpro? Aktuell in AKUT statt AKUT/akut > egal
+- "Verfügbare xyz öffnen/schließen" einheitlich (z.B. bei blauen)? > button standardmäßig aufgeklappt (berechnungen lassen)
+- Bootstrap-Version? > 4.0.0 oder 5
+- flask_migrate? > später, sinnvoll
+- cascadeOnDelete; association_table als model -> ST-Code
+"""

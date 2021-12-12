@@ -5,8 +5,7 @@ from datetime import *
 
 from akut import app, LoginForm, bcrypt, RegistrationForm, login_db, folder
 from akut.databaseHandler import *
-from akut.models import User, allowed
-
+from akut.models import User, Region, Association, allowed
 
 
 @app.route("/")
@@ -62,6 +61,8 @@ def logout():
 @app.route("/account", methods=['GET', 'POST'])
 @login_required
 def account():
+    for region in current_user.regions:
+        print(region.name)
     return render_template("account.html")
 
 
@@ -82,7 +83,7 @@ def upload():
         if (request.form.get("reuseFile") is None):
             file.save(os.path.join(folder, filename))
         # myDatabaseHandler.writeUploadedDataToDatabase(folder, filename, float(request.form.get("gridSize")))
-        myDatabaseHandler.writeUploadedDataToDGM1(folder, filename, float(request.form.get("gridSize")),
+        myDatabaseHandler.writeUploadedDataToDGM1(folder, filename, 1,
                                                   request.form.get("reuseFile"))
         myDatabaseHandler.initialize_optimization_parameters("init")
         print("data written to DB successfully")
@@ -96,15 +97,6 @@ def delete():
         myDatabaseHandler = databaseHandler(request.form.get("region"), "database.db")
         myDatabaseHandler.deleteRegion()
     return render_template("delete.html")
-
-
-@app.route("/deleteBuildings", methods=['GET', 'POST'])
-@login_required
-def deleteBuildings():
-    if request.method == "POST":
-        myDatabaseHandler = databaseHandler(request.form.get("region"), "database.db")
-        myDatabaseHandler.deleteBuildings()
-    return render_template("deleteBuildings.html")
 
 
 @app.route("/deleteWholeData", methods=['GET', 'POST'])
@@ -284,9 +276,27 @@ def uploadEinzugsgebiete():
             filename = secure_filename(file.filename)
         else:
             return redirect(request.url)
-        myDatabaseHandler = databaseHandler(request.form.get("region"), "database.db")
+        region_upload = request.form.get("region")
+        myDatabaseHandler = databaseHandler(region_upload, "database.db")
         file.save(os.path.join(folder, filename))
         myDatabaseHandler.writeUploadedEinzugsgebieteToDatabase(folder, filename)
+
+        # Neue Regionen hochladen
+        region_current = Region.query.filter_by(name=region_upload).first()
+        if not region_current:
+            region_new = Region(name=region_upload)
+            login_db.session.add(region_new)
+            region_current = Region.query.filter_by(name=region_upload).first()
+            admin_user = User.query.filter_by(username='admin').first()
+            region_current.users.append(Association(user=admin_user))
+            login_db.session.commit()
+
+        # User hinzufuegen
+        association_exists = Association.query.filter_by(user_id=current_user.id).filter_by(region_id=region_current.id).first()
+        if not association_exists:
+            region_current.users.append(Association(user=current_user))
+            login_db.session.commit()
+
     return render_template("uploadEinzugsgebiete.html")
 
 
