@@ -8,7 +8,7 @@ from datetime import *
 from akut.databaseHandler import *
 
 folder = os.path.join(os.path.dirname(os.path.abspath(__file__)), "csv")
-extensions = set(['txt', 'csv', 'geojson', 'dxf', 'xml', 'shp', 'xyz'])
+extensions = set(['txt', 'csv', 'geojson', 'dxf', 'xml', 'shp', 'xyz', "zip"])
 geosteps = 25
 timeSteps = 6
 rain = 0.6
