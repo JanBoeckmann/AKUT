@@ -3,6 +3,7 @@ import networkx as nx
 import operator
 import matplotlib as plt
 import datetime
+import os
 
 class ipEquilibriumWaterLevels:
     def __init__(self, ratios, geodesicHeight, area, timeSteps, rain, massnahmenOnNode, allAuffangbecken, allLeitgraeben, all_buildings, optimization_parameters, initialSolution, threshold_for_gefahrenklasse, massnahmen_kataster, all_kataster):
@@ -39,6 +40,10 @@ class ipEquilibriumWaterLevels:
         # print("compute compounded graph")
         self.cc_graph, self.cc_area, self.cc_geodesic_height, self.cc_ratios, self.connected_components_as_mapping_with_representation, self.mapping_representator_per_node = self.compute_compounded_graph()
         # print(self.cc_ratios)
+        debug = True
+        if debug:
+            parent_directory = os.path.dirname(os.path.abspath(__file__))
+            nx.write_gml(self.cc_graph, "test.gml")
         self.extendedGraph = self.createExtendedGraph()
         self.printSolutions = False
         self.flooded, self.activeNodes, self.waterHeight, self.auffangbecken_solution, self.leitgraeben_solution, self.flow_through_nodes, self.handlungsbedarf = self.solve()
