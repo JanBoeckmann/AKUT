@@ -1168,7 +1168,7 @@ class databaseHandler:
         gridInstanceGraph = instanceGraph(self.region, gridData["Position"], gridData["Relevant"], gridData["GeodesicHeight"], gridData["massnahmenOnNode"], headerData[6], allAuffangbecken, allLeitgraeben, all_buildings, headerData[7], headerData[8], gridData["which_DGM_from"])
         floodingTimes, waterAmounts, modGraph, modArea, floodedNodes, water_height = gridInstanceGraph.computeInitialSolution(None)
 
-        threshold_when_to_resolve_further = 0.05
+        threshold_when_to_resolve_further = 0.01
 
         nodes_to_check = nodes_with_buildings_25 - nodes_with_massnahmen_25
 

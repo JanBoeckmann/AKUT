@@ -4,6 +4,7 @@ import operator
 import matplotlib as plt
 import datetime
 import os
+from akut.graphSaver import GraphSaver
 
 class ipEquilibriumWaterLevels:
     def __init__(self, ratios, geodesicHeight, area, timeSteps, rain, massnahmenOnNode, allAuffangbecken, allLeitgraeben, all_buildings, optimization_parameters, initialSolution, threshold_for_gefahrenklasse, massnahmen_kataster, all_kataster):
@@ -42,8 +43,8 @@ class ipEquilibriumWaterLevels:
         # print(self.cc_ratios)
         debug = True
         if debug:
-            parent_directory = os.path.dirname(os.path.abspath(__file__))
-            nx.write_gml(self.cc_graph, "test.gml")
+            graph_saver = GraphSaver(self.cc_graph)
+            graph_saver.save_graph_as_gml("test2.edgelist")
         self.extendedGraph = self.createExtendedGraph()
         self.printSolutions = False
         self.flooded, self.activeNodes, self.waterHeight, self.auffangbecken_solution, self.leitgraeben_solution, self.flow_through_nodes, self.handlungsbedarf = self.solve()
@@ -983,7 +984,7 @@ class ipEquilibriumWaterLevels:
         waterHeightGreaterZero = getNodesWithWaterHeightGreaterZero()
         flow_through_nodes = compute_flow_through_nodes()
         handlungsbedarf = compute_handlungsbedarf()
-        myModel.write(filename="myModel.lp")
+        # myModel.write(filename="myModel.lp")
 
         printSolution = False
         if printSolution:
