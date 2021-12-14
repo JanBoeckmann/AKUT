@@ -1,4 +1,4 @@
-from akut import app, login_db
+from akut import app
 from akut.models import LoggingMiddleware
 
 if __name__ == "__main__":
@@ -7,18 +7,19 @@ if __name__ == "__main__":
     app.run(port=4000, debug=True, host='0.0.0.0', threaded=False)
 
 """
-TODO
-- filter, wenn user regionen aufruft -> database.db > zusammenfügen -> rout-Code in entsprechende databasehandler-funktion
-- uploads in login.db -> siehe databaseHandler
-- models (dgmi, headers...) <- datenbanken; über id
+FRAGEN:
+1.) PW vergessen? > "Wenn email existiert, wurde mail an 'xyz' geschickt statt validierungs-feedback"; Mailserver?
+2.) cascade -> SR-Code -> Wenn User oder Region gelöscht: Nur association löschen, nix an Regionen; 2 Arten von deletes?
+3.) Association-Model: primary_key bzw. nullable=False
 
-- Association als model
-- requirements fehler > egal
-- import * spezifizieren > sinnvoll
-- PW vergessen? > sinnvoll
-- database.db path /// -> hardcoded in database.sqbpro? Aktuell in AKUT statt AKUT/akut > egal
-- "Verfügbare xyz öffnen/schließen" einheitlich (z.B. bei blauen)? > button standardmäßig aufgeklappt (berechnungen lassen)
-- Bootstrap-Version? > 4.0.0 oder 5
-- flask_migrate? > später, sinnvoll
-- cascadeOnDelete; association_table als model -> ST-Code
+TODO
+1.) uploads in login.db speichern/verwalten -> siehe databaseHandler
+2.) Filter, wenn user regionen aufruft -> database.db > zusammenfügen -> route-Code in entspr. databasehandler-funktion
+
+SPÄTER
+1.) import * spezifizieren, imports verschiedener seiten aufräumen, Formatierung, blueprints
+2.) "Verfügbare xyz öffnen/schließen" einheitlich > button, standardmäßig aufgeklappt (berechnungen lassen)
+3.) Bootstrap-Version? > 4.0.0 oder 5
+4.) flask_migrate
+5.) app.run([...], processes)
 """

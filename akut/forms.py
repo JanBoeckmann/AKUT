@@ -32,3 +32,16 @@ class LoginForm(FlaskForm):
     password = PasswordField('Passwort', validators=[DataRequired()])
     remember = BooleanField('Eingeloggt bleiben')
     submit = SubmitField('Login!')
+
+
+class RequestResetForm(FlaskForm):
+    email = StringField('Email',
+                        validators=[DataRequired(), Email()])
+    submit = SubmitField('Passwort-Reset beantragen')
+
+
+class ResetPasswordForm(FlaskForm):
+    password = PasswordField('Neues Passwort', validators=[DataRequired()])
+    confirm_password = PasswordField('Neues Passwort bestätigen',
+                                     validators=[DataRequired(), EqualTo('password')])
+    submit = SubmitField('Passwort zurücksetzen')

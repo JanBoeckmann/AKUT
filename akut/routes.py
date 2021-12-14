@@ -3,9 +3,11 @@ from flask_login import login_user, current_user, logout_user, login_required
 from werkzeug.utils import secure_filename
 from datetime import *
 
-from akut import app, LoginForm, bcrypt, RegistrationForm, login_db, folder
+from akut import app, LoginForm, bcrypt, RegistrationForm, login_db, folder, RequestResetForm, ResetPasswordForm, mail
 from akut.databaseHandler import *
-from akut.models import User, Region, Association, allowed
+from akut.models import User, Region, User_Region, allowed
+
+from flask_mail import Message
 
 
 @app.route("/")
@@ -65,6 +67,46 @@ def account():
         print(region.name)
     return render_template("account.html")
 
+
+def send_reset_email(user):
+    token = user.get_reset_token()
+    msg = Message('Password Reset Request',sender='noreply@akut.com', recipients=[user.email])
+    msg.body = f'''To reset your password, visit the following link:
+{url_for('reset_token', token=token, _external=True)}
+Wenn Sie keine Anfrage gesendet haben, können Sie diese Mail ignorieren.'''
+    mail.send(msg)
+
+
+@app.route("/reset_password", methods=['GET', 'POST'])
+def reset_request():
+    if current_user.is_authenticated:
+        return redirect(url_for('home'))
+    form = RequestResetForm()
+    user = User.query.filter_by(email=form.email.data).first()
+    if form.validate_on_submit():
+        if user:
+            send_reset_email(user)
+        flash(f'Wenn für "{form.email.data}" ein Account existiert,wurde eine E-Mail zum Zurücksetzen des Passworts gesendet.','info')
+        return redirect(url_for('login'))
+    return render_template('reset_request.html', form=form)
+
+
+@app.route("/reset_password/<token>", methods=['GET', 'POST'])
+def reset_token(token):
+    if current_user.is_authenticated:
+        return redirect(url_for('home'))
+    user = User.verify_reset_token(token)
+    if user is None:
+        flash('That is an invalid or expired token', 'warning')
+        return redirect(url_for('reset_request'))
+    form = ResetPasswordForm()
+    if form.validate_on_submit():
+        hashed_password = bcrypt.generate_password_hash(form.password.data).decode('utf-8')
+        user.password = hashed_password
+        login_db.session.commit()
+        flash('Passwort aktualisiert!', 'success')
+        return redirect(url_for('login'))
+    return render_template('reset_token.html', title='Reset Password', form=form)
 
 @app.route("/upload", methods=['GET', 'POST'])
 @login_required
@@ -288,13 +330,13 @@ def uploadEinzugsgebiete():
             login_db.session.add(region_new)
             region_current = Region.query.filter_by(name=region_upload).first()
             admin_user = User.query.filter_by(username='admin').first()
-            region_current.users.append(Association(user=admin_user))
+            region_current.users.append(User_Region(user=admin_user))
             login_db.session.commit()
 
         # User hinzufuegen
-        association_exists = Association.query.filter_by(user_id=current_user.id).filter_by(region_id=region_current.id).first()
+        association_exists = User_Region.query.filter_by(user_id=current_user.id).filter_by(region_id=region_current.id).first()
         if not association_exists:
-            region_current.users.append(Association(user=current_user))
+            region_current.users.append(User_Region(user=current_user))
             login_db.session.commit()
 
     return render_template("uploadEinzugsgebiete.html")

@@ -1,4 +1,4 @@
-from akut import Association, Region, User, login_db, bcrypt
+from akut import User_Region, Region, User, login_db, bcrypt
 
 login_db.drop_all()
 login_db.create_all()
@@ -12,5 +12,14 @@ region_fischbach = Region(name='Fischbach')
 login_db.session.add(user_admin)
 login_db.session.add(user_andi)
 login_db.session.add(region_fischbach)
-region_fischbach.users.append(Association(user=user_admin))
+region_fischbach.users.append(User_Region(user=user_admin))
+login_db.session.commit()
+"""
+delete = User.query.filter_by(username='admin').delete()
+login_db.session.commit()
+
+delete = User.query.filter_by(username='admin').first()
+login_db.session.delete(delete)
+"""
+
 login_db.session.commit()

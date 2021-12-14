@@ -15,6 +15,7 @@ Flask-Bcrypt==0.7.1
 Flask-Login==0.5.0
 Flask-SQLAlchemy==2.5.1
 Flask-WTF==1.0.0
+Flask-Mail==0.9.1
 fonttools==4.25.0
 gekko==1.0.2
 greenlet==1.1.2
