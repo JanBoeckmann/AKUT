@@ -519,6 +519,11 @@ class databaseHandler:
         myCursor.execute("DELETE from regionsMassnahmenKatasterMapping WHERE region = \"" + self.region + "\"")
         conn.commit()
         conn.close()
+        conn = self.establishConnection()
+        myCursor = conn.cursor()
+        myCursor.execute("vacuum")
+        conn.commit()
+        conn.close()
         print("Data deleted Successfully")
 
     def deleteBuildings(self):

@@ -175,6 +175,32 @@ class ipEquilibriumWaterLevels:
                 c.add(representative_node)
             return connected_components_as_mapping_with_representation
 
+        def remove_upwards_edges():
+            edges_to_be_removed = set()
+            for e in cc_graph.edges():
+                if cc_geodesic_height[e[0]] < cc_geodesic_height[e[1]]:
+                    edges_to_be_removed.add(e)
+            cc_graph.remove_edges_from(edges_to_be_removed)
+            edges_to_be_removed = set()
+            for e in cc_graph.edges():
+                if (e[1], e[0]) in cc_graph.edges() and (e[1], e[0]) not in edges_to_be_removed:
+                    edges_to_be_removed.add(e)
+            cc_graph.remove_edges_from(edges_to_be_removed)
+
+        def turn_around_tie_edges_to_prevent_circles():
+            edges_to_be_turned_around = set()
+            for e in cc_graph.edges():
+                if cc_geodesic_height[e[0]] == cc_geodesic_height[e[1]]:
+                    if e[0][0] > e[1][0]:
+                        edges_to_be_turned_around.add(e)
+                    elif e[0][1] > e[1][1]:
+                        edges_to_be_turned_around.add(e)
+            for e in edges_to_be_turned_around:
+                cc_graph.remove_edge(*e)
+                cc_graph.add_edge(*(e[1], e[0]))
+                cc_ratios[(e[1], e[0])] = cc_ratios[e]
+
+
         connected_components = compute_connected_components()
         connected_components_as_mapping_with_representation = connected_components_to_mapping()
 
@@ -225,6 +251,9 @@ class ipEquilibriumWaterLevels:
                 cc_ratios[(new_start_node, new_end_node)] = cc_ratios[(new_start_node, new_end_node)] + self.ratios[(original_start_node, original_end_node)]
             else:
                 cc_ratios[(new_start_node, new_end_node)] = self.ratios[(original_start_node, original_end_node)]
+
+        remove_upwards_edges()
+        turn_around_tie_edges_to_prevent_circles()
 
         return cc_graph, cc_area, cc_geodesic_height, cc_ratios, connected_components_as_mapping_with_representation, mapping_representator_per_node
 
