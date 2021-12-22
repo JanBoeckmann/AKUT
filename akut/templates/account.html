@@ -5,5 +5,33 @@
 {% endblock title %}
 
 {% block content %}
-<h1>{{ current_user.username }} </h1>
+<h1>{{ current_user.username }}</h1>
+<div class="container">
+    <form method="POST" action="">
+        <div class="col-md-8">
+            <div class="container" id="bottomDisplayContainer">
+                <select class="selectpicker" name="Region" id="Region">
+                    <option value="" selected disabled>Region auswählen</option>
+                    {% for region in regions %}
+                    <option value={{region}}>{{region}}</option>
+                    {% endfor %}
+                </select>
+                <br>
+                <br>
+                <select class="selectpicker" name="Aktion" id="Aktion">
+                    <option value="" selected disabled>Aktion auswählen</option>
+                    <option value="Entfernen">Entfernen</option>
+                    <option value="Freigeben">Freigeben</option>
+                    <option value="Admin abgeben">Admin abgeben</option>
+                </select>
+                <br>
+                <br>
+                <input type="submit" value="Löschen/Weiter" class="btn btn-lg btn-primary"/>
+            </div>
+            <br>
+            <div id="successAlert" class="alert alert-success" role="alert" style="display:none;"></div>
+            <div id="errorAlert" class="alert alert-danger" role="alert" style="display:none;"></div>
+        </div>
+    </form>
+</div>
 {% endblock content %}

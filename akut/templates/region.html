@@ -1,0 +1,31 @@
+{% extends "layouts/navAccount.html" %}
+
+{% block title %}
+<a class="navbar-brand mr-4">Region verwalten</a>
+{% endblock title %}
+
+{% block content %}
+<div class="container">
+    <form method="POST" action="">
+        <div class="col-md-8">
+            <div class="container" id="bottomDisplayContainer">
+                </select>
+                <br>
+                <br>
+                <select class="selectpicker" name="User" id="User">
+                    <option value="" selected disabled>User auswählen</option>
+                    {% for user in users %}
+                    <option value={{user}}>{{user}}</option>
+                    {% endfor %}
+                </select>
+                <br>
+                <br>
+                <input type="submit" value="Ausführen" class="btn btn-lg btn-primary"/>
+            </div>
+            <br>
+            <div id="successAlert" class="alert alert-success" role="alert" style="display:none;"></div>
+            <div id="errorAlert" class="alert alert-danger" role="alert" style="display:none;"></div>
+        </div>
+    </form>
+</div>
+{% endblock content %}

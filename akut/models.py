@@ -2,6 +2,7 @@ import pprint
 
 from flask_login import UserMixin
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
+from datetime import datetime
 
 from akut import login_db, extensions, app
 
@@ -27,9 +28,11 @@ class LoggingMiddleware(object):
 
 class User_Region(login_db.Model):
     __tablename__ = 'user_region'
-    # id = login_db.Column(login_db.Integer, primary_key=True)
     user_id = login_db.Column(login_db.Integer, login_db.ForeignKey('user.id'), primary_key=True)
     region_id = login_db.Column(login_db.Integer, login_db.ForeignKey('region.id'), primary_key=True)
+    access = login_db.Column(login_db.Text, nullable=False, default='All')
+    provided_by = login_db.Column(login_db.Text, nullable=False, default='None')
+    date_associated = login_db.Column(login_db.DateTime, nullable=False, default=datetime.utcnow)
 
 
 class User(login_db.Model, UserMixin):
@@ -38,7 +41,15 @@ class User(login_db.Model, UserMixin):
     email = login_db.Column(login_db.String(120), unique=True, nullable=False)
     image_file = login_db.Column(login_db.String(20), nullable=False, default='default.jpg')
     password = login_db.Column(login_db.String(60), nullable=False)
-    regions = login_db.relationship('User_Region', backref='user', cascade="all,delete", lazy=True)
+    regions = login_db.relationship('User_Region', backref='user', cascade='all, delete', lazy=True)  # backref = region
+    admin_regions = login_db.relationship('Region', backref='admin', lazy=True)
+
+    """
+    def deleteUser(self):
+        # Wenn ein Admin einer Region:
+            Admin an User übergeben, der die Region am längsten hat
+        User löschen
+    """
 
     def get_reset_token(self, expires_sec=1800):
         s = Serializer(app.config['SECRET_KEY'], expires_sec)
@@ -60,7 +71,8 @@ class User(login_db.Model, UserMixin):
 class Region(login_db.Model):
     id = login_db.Column(login_db.Integer, primary_key=True)
     name = login_db.Column(login_db.String(50), unique=True, nullable=False)
-    users = login_db.relationship('User_Region', backref='region', cascade="all,delete", lazy=True)
+    users = login_db.relationship('User_Region', backref='region', cascade='all, delete', lazy=True)
+    admin_id = login_db.Column(login_db.Integer, login_db.ForeignKey('user.id'), nullable=False)
 
     def __repr__(self):
         return f"Region('{self.name}')"

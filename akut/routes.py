@@ -63,10 +63,60 @@ def logout():
 @app.route("/account", methods=['GET', 'POST'])
 @login_required
 def account():
-    for region in current_user.regions:
-        print(region.name)
-    return render_template("account.html")
+    regionList = []
+    regions_id = User_Region.query.filter_by(user_id=current_user.id).all()
+    for r_id in regions_id:
+        id = r_id.region_id
+        r = Region.query.filter_by(id=id).first()
+        regionList.append(r.name)
 
+    if request.method == 'POST':
+        action = request.form.get("Aktion")
+        region = request.form.get("Region")
+        if not action or not region:
+            return redirect(url_for('account'))
+            # Fehlermeldung: Felder ausfüllen!
+        region_manage = Region.query.filter_by(name=region).first()
+
+        if action == "Entfernen":
+            if region_manage.admin_id == current_user.id:
+                return redirect(url_for('account'))
+                # Fehlermeldung: Vorher admin abgeben!
+            delete = User_Region.query.filter_by(user_id=current_user.id).filter_by(region_id=region_manage.id).first()
+            login_db.session.delete(delete)
+            login_db.session.commit()
+        elif action == "Freigeben":
+            return redirect(url_for('manageRegion', region=region, action="freigeben"))
+        elif action == "Admin abgeben":
+            return redirect(url_for('manageRegion', region=region, action="adminGeben"))
+
+    return render_template("account.html", regions=regionList)
+
+@app.route("/manageRegion/<region>/<action>", methods=['GET', 'POST'])
+@login_required
+def manageRegion(region, action):
+    region_manage = Region.query.filter_by(name=region).first()
+    userList = []
+    user_id = User.query.all()
+    for u in user_id:
+        userList.append(u.username)
+
+    if request.method == 'POST':
+        user = request.form.get("User")
+        if not user:
+            return redirect(url_for('account'))
+        user_manage = User.query.filter_by(username=user).first()
+        if user_manage:
+            if action == "freigeben":
+                region_manage.users.append(User_Region(user=user_manage))
+                login_db.session.commit()
+                return redirect(url_for('account'))
+            elif action == "adminGeben":
+                region_manage.admin_id = user_manage.id
+                login_db.session.commit()
+                return redirect(url_for('account'))
+
+    return render_template("region.html", users=userList)
 
 def send_reset_email(user):
     token = user.get_reset_token()
