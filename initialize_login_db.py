@@ -13,19 +13,10 @@ region_fischbach3 = Region(name='Fischbach3', admin_id='2')
 
 login_db.session.add(user_admin)
 login_db.session.add(user_andi)
-login_db.session.add(region_fischbach)
+
 region_fischbach.users.append(User_Region(user=user_admin))
 region_fischbach2.users.append(User_Region(user=user_admin))
 region_fischbach2.users.append(User_Region(user=user_andi))
 region_fischbach3.users.append(User_Region(user=user_andi))
 
 login_db.session.commit()
-"""
-delete = User.query.filter_by(username='admin').first()
-login_db.session.delete(delete)
-
-delete = User_Region.query.filter_by(user_id=user_admin.id).filter_by(region_id=region_fischbach2.id).first()
-login_db.session.delete(delete)
-
-login_db.session.commit()
-"""

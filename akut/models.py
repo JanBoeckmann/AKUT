@@ -28,11 +28,11 @@ class LoggingMiddleware(object):
 
 class User_Region(login_db.Model):
     __tablename__ = 'user_region'
-    user_id = login_db.Column(login_db.Integer, login_db.ForeignKey('user.id'), primary_key=True)
-    region_id = login_db.Column(login_db.Integer, login_db.ForeignKey('region.id'), primary_key=True)
     access = login_db.Column(login_db.Text, nullable=False, default='All')
-    provided_by = login_db.Column(login_db.Text, nullable=False, default='None')
     date_associated = login_db.Column(login_db.DateTime, nullable=False, default=datetime.utcnow)
+    region_id = login_db.Column(login_db.Integer, login_db.ForeignKey('region.id'), primary_key=True)
+    user_id = login_db.Column(login_db.Integer, login_db.ForeignKey('user.id'), primary_key=True)
+    provided_by_id = login_db.Column(login_db.Text, login_db.ForeignKey('user.id'), nullable=False, default="None")
 
 
 class User(login_db.Model, UserMixin):
@@ -41,8 +41,9 @@ class User(login_db.Model, UserMixin):
     email = login_db.Column(login_db.String(120), unique=True, nullable=False)
     image_file = login_db.Column(login_db.String(20), nullable=False, default='default.jpg')
     password = login_db.Column(login_db.String(60), nullable=False)
-    regions = login_db.relationship('User_Region', backref='user', cascade='all, delete', lazy=True)  # backref = region
     admin_regions = login_db.relationship('Region', backref='admin', lazy=True)
+    regions = login_db.relationship('User_Region', backref='user', foreign_keys=User_Region.user_id, cascade='all, delete', lazy=True)
+    provided = login_db.relationship('User_Region', backref='provider', foreign_keys=User_Region.provided_by_id, lazy=True)
 
     """
     def deleteUser(self):
