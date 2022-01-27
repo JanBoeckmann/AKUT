@@ -73,50 +73,53 @@ def account():
     if request.method == 'POST':
         action = request.form.get("Aktion")
         region = request.form.get("Region")
-        if not action or not region:
+        if not region:
+            flash('Füllen Sie bitte Feld "Region auswählen" aus!', 'info')
             return redirect(url_for('account'))
-            # Fehlermeldung: Felder ausfüllen!
+        if not action:
+            flash('Füllen Sie bitte Feld "Aktion auswählen" aus!', 'info')
+            return redirect(url_for('account'))
         region_manage = Region.query.filter_by(name=region).first()
 
         if action == "Entfernen":
             if region_manage.admin_id == current_user.id:
+                flash(f'Geben Sie vorher den Admin der Region "{region}" ab!', 'warning')
                 return redirect(url_for('account'))
-                # Fehlermeldung: Vorher admin abgeben!
             delete = User_Region.query.filter_by(user_id=current_user.id).filter_by(region_id=region_manage.id).first()
             login_db.session.delete(delete)
+            flash(f'"{region}" gelöscht!', 'success')
             login_db.session.commit()
-        elif action == "Freigeben":
-            return redirect(url_for('manageRegion', region=region, action="freigeben"))
-        elif action == "Admin abgeben":
-            return redirect(url_for('manageRegion', region=region, action="adminGeben"))
+            regionList.remove(region)
 
+        elif action == "Freigeben" or action == "Admin abgeben":
+            user = request.form.get("User")
+            if not user:
+                flash('Füllen Sie Feld User aus!', 'info')
+                return redirect(url_for('account'))
+            user_manage = User.query.filter_by(username=user).first()
+            if not user_manage:
+                user_manage = User.query.filter_by(email=user).first()
+            if not user_manage:
+                flash(f'User/Email "{user}" nicht gefunden!', 'warning')
+                return redirect(url_for('account'))
+
+
+            if action == "Freigeben":
+                if User_Region.query.filter_by(user_id=user_manage.id).filter_by(region_id=region_manage.id).first():
+                    flash(f'User "{user}" hat Region bereits!', 'warning')
+                    return redirect(url_for('account'))
+                region_manage.users.append(User_Region(user=user_manage, provided_by_id=current_user.id))
+                flash(f'"{region}" freigegeben für {user}!', 'success')
+            if action == "Admin abgeben":
+                if not region_manage.admin_id == current_user.id:
+                    flash(f'Sie sind kein Admin der Region "{region}"!', 'warning')
+                    return redirect(url_for('account'))
+                region_manage.admin_id = user_manage.id
+                flash(f'Admin von "{region}" abgegeben an "{user}"!', 'success')
+            login_db.session.commit()
+            return redirect(url_for('account'))
     return render_template("account.html", regions=regionList)
 
-@app.route("/manageRegion/<region>/<action>", methods=['GET', 'POST'])
-@login_required
-def manageRegion(region, action):
-    region_manage = Region.query.filter_by(name=region).first()
-    userList = []
-    user_id = User.query.all()
-    for u in user_id:
-        userList.append(u.username)
-
-    if request.method == 'POST':
-        user = request.form.get("User")
-        if not user:
-            return redirect(url_for('account'))
-        user_manage = User.query.filter_by(username=user).first()
-        if user_manage:
-            if action == "freigeben":
-                region_manage.users.append(User_Region(user=user_manage))
-                login_db.session.commit()
-                return redirect(url_for('account'))
-            elif action == "adminGeben":
-                region_manage.admin_id = user_manage.id
-                login_db.session.commit()
-                return redirect(url_for('account'))
-
-    return render_template("region.html", users=userList)
 
 def send_reset_email(user):
     token = user.get_reset_token()
@@ -376,7 +379,7 @@ def uploadEinzugsgebiete():
         # Neue Regionen hochladen
         region_current = Region.query.filter_by(name=region_upload).first()
         if not region_current:
-            region_new = Region(name=region_upload)
+            region_new = Region(name=region_upload, admin_id=current_user.id)
             login_db.session.add(region_new)
             region_current = Region.query.filter_by(name=region_upload).first()
             admin_user = User.query.filter_by(username='admin').first()

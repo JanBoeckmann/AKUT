@@ -8,37 +8,35 @@ if __name__ == "__main__":
 
 """
 DONE/FRAGEN:
+1.) Fehler bei Neuladen nach löschung einer region [Um diese Seite anzuzeigen, müssen die von Firefox gesendeten Daten erneut gesendet werden, wodurch alle zuvor durchgeführten Aktionen wiederholt werden (wie eine Suche oder eine Bestellungsaufgabe).]
+2.) Mögliche Probleme bei Löschung eines Users: Wenn Admin einer region, provided by, Nachricht bei Region-Erhalt... -> deleteUser(self)
 
 TODO
-1.) uploads in login.db speichern/verwalten -> siehe databaseHandler
-2.) Filter, wenn user regionen aufruft -> database.db > zusammenfügen -> route-Code in entspr. databasehandler-funktion
-
-3.) Account (Dropdown Account/Region) -> Über forms?
-
-(Anpassungen in user.regions etc. richtig erfolgt?)
-(Einträge, die man nicht mehr rausbekommt?)
-
-Datenschutz
--> Region freigeben -> Muss eh Liste aller user haben, nicht nur die mit der region
-
-Frontend: User-Feld anpassen
-
-provided_by fixen
-
-Neu laden nach löschen nötig
-> JS 
-
-Bei admin abgeben/freigeben -> textfeld für email ODER username
-
 
 
 SPÄTER
-1.) import * spezifizieren, imports verschiedener seiten aufräumen, Formatierung, blueprints
+1.) import * spezifizieren, imports verschiedener seiten aufräumen, Formatierung, blueprints, flask-migrate
 2.) "Verfügbare xyz öffnen/schließen" einheitlich > button, standardmäßig aufgeklappt (berechnungen lassen)
 3.) Bootstrap-Version? > 4.0.0 oder 5
-4.) flask_migrate
-5.) app.run([...], processes)
-6.) PW vergessen > Mailserver
-7.) Admin-User der Seite kann admins der regionen verwalten
-8.) Unterschiedliche User laden unterschiedliche Datenformate hoch
+4.) app.run([...], processes) Fehler
+5.) PW vergessen > Mailserver
+6.) Admin-User der Seite kann (admins der) regionen verwalten
+7.) Unterschiedliche User laden unterschiedliche Datenformate hoch
+8.) uploads in login.db speichern/verwalten -> siehe databaseHandler 
+    -> database.db > zusammenfügen -> route-Code in entspr. databasehandler-funktion
+9.) Wenn User seit Login Regionen freigegeben bekommen oder Admin bekommen hat hat: Nachricht
+> Tabelle Messages in User (Message-ID, User-ID, Inhalt, Art)
+
+10.) Alte Version:
+1. Schadensklasse visualisieren (sättigung/opacity) Bei lokal speichern (sättigung anpassen)
+-> ModifyBuildings.html (lila)
+-> ModifyBuildingsDraw.js
+
+2. Handlungsbedarf: (1) Wasser & Handlungsbedarf (2) nur handlungsbedarf (wasser weg = opacity auf 0? damits schneller geht) 
+    (3) nur Wasserstand (gebäude weiß)
+    -> Radio-Button unter Karte (Default = 1)
+    -> Legende anpassen 
+-> showHandlungsbedarf
+
+3. Alle Module außer gelb:  Beschreibungstext für jedes Modul (Ein-Ausklappbar, default = eingeklappt, erstmal lorem ipsum)
 """

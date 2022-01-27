@@ -1,5 +1,8 @@
 {% extends "layouts/navAccount.html" %}
 
+{% block head %}
+{% endblock head %}
+
 {% block title %}
 <a class="navbar-brand mr-4">Account</a>
 {% endblock title %}
@@ -18,7 +21,7 @@
                 </select>
                 <br>
                 <br>
-                <select class="selectpicker" name="Aktion" id="Aktion">
+                <select class="selectpicker" name="Aktion" id="Aktion" onchange="updateAktion()">
                     <option value="" selected disabled>Aktion auswählen</option>
                     <option value="Entfernen">Entfernen</option>
                     <option value="Freigeben">Freigeben</option>
@@ -26,7 +29,11 @@
                 </select>
                 <br>
                 <br>
-                <input type="submit" value="Löschen/Weiter" class="btn btn-lg btn-primary"/>
+                <input type="text" id="User" name="User" class="hidden"
+                   placeholder="Username oder E-Mail" method="post">
+                <br>
+                <br>
+                <input type="submit" id= "Execute" value="Ausführen" class="btn btn-lg btn-primary"/>
             </div>
             <br>
             <div id="successAlert" class="alert alert-success" role="alert" style="display:none;"></div>
@@ -34,4 +41,17 @@
         </div>
     </form>
 </div>
+
+<script>
+    function updateAktion(){
+        let user = document.getElementById("User");
+        let action = $('select[name=Aktion]').val();
+
+        if (action !== "Freigeben" && action !== "Admin abgeben"){
+            user.classList.add('hidden');
+        }else{
+            user.classList.remove('hidden');
+        }
+    }
+</script>
 {% endblock content %}
