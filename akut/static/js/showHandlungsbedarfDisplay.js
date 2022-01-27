@@ -98,6 +98,9 @@ $(document).ready(function() {
                 }else if(mySavedData.waterHeight[id] > 0.5){
                     var color = '#003366'
                 }
+                if(!(id in mySavedData.Grid)){
+                    drawPolygon = false;
+                }
                 if(drawPolygon){
                     var newPolygon = L.polygon(mySavedData.Grid[id], {schadensklasse: 1, title: id}).setStyle({fillColor: color, weight: 0, fillOpacity: 0.65}).addTo(currentMap);
                     newPolygon.on('click', onPolygonClick);
