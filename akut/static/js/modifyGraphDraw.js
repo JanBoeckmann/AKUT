@@ -67,7 +67,6 @@ $(document).ready(function() {
             // var baseLayer = L.tileLayer('https://wms.onmaps.de/?key=f9634f549f74a4e002b743f584f6cb08&layer=onmaps_dezent').addTo(currentMap);
 
             // remove draw control
-            var myDrawControl = $('.leaflet-draw');
             if(myDrawControl.length > 0){
                 myDrawControl[0].remove();
             }
@@ -76,17 +75,9 @@ $(document).ready(function() {
             var useClustering = false;
 
             // Initialise the FeatureGroup to store editable layers
-            var drawnItems = new L.FeatureGroup();
             mymap.addLayer(drawnItems);
 
-            // Initialise the draw control and pass it the FeatureGroup of editable layers
-            var drawControl = new L.Control.Draw({
-              edit: {
-                featureGroup: drawnItems
-              }
-            });
-
-            mymap.addControl(drawControl);
+            mymap.addControl(myDrawControl);
 
             mymap.on(L.Draw.Event.CREATED, function (e) {
                 var type = e.layerType

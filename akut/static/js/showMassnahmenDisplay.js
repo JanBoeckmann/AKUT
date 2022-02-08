@@ -59,7 +59,6 @@ $(document).ready(function() {
 
             currentMap.addLayer(onmapsWMSLayer);
 
-            var legend = L.control({position: 'bottomright'});
 
             legend.onAdd = function (currentMap) {
 

@@ -15,8 +15,9 @@ login_db.session.add(user_admin)
 login_db.session.add(user_andi)
 
 region_fischbach.users.append(User_Region(user=user_admin))
-region_fischbach2.users.append(User_Region(user=user_admin))
 region_fischbach2.users.append(User_Region(user=user_andi))
 region_fischbach3.users.append(User_Region(user=user_andi))
 
 login_db.session.commit()
+
+# User.deleteUser(user_andi)

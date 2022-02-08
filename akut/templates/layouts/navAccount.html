@@ -18,3 +18,16 @@
     {% endif %}
 </ul>
 {% endblock navbar %}
+
+{% block modulinfo %}
+<p>
+    <a class="btn btn-primary" data-toggle="collapse" href="#collapseInfo" role="button"
+       aria-expanded="false" aria-controls="collapseInfo">
+        Modul-Info öffnen/schließen
+    </a>
+</p>
+<div class="collapse" id="collapseInfo">
+    {% block info %}{% endblock info %}
+</div>
+<br>
+{% endblock modulinfo %}

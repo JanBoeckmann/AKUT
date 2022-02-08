@@ -3,6 +3,7 @@ import pprint
 from flask_login import UserMixin
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
 from datetime import datetime
+from sqlalchemy import delete
 
 from akut import login_db, extensions, app
 
@@ -32,7 +33,7 @@ class User_Region(login_db.Model):
     date_associated = login_db.Column(login_db.DateTime, nullable=False, default=datetime.utcnow)
     region_id = login_db.Column(login_db.Integer, login_db.ForeignKey('region.id'), primary_key=True)
     user_id = login_db.Column(login_db.Integer, login_db.ForeignKey('user.id'), primary_key=True)
-    provided_by_id = login_db.Column(login_db.Text, login_db.ForeignKey('user.id'), nullable=False, default="None")
+    provided_by_id = login_db.Column(login_db.Text, login_db.ForeignKey('user.id'), default=None)
 
 
 class User(login_db.Model, UserMixin):
@@ -45,12 +46,25 @@ class User(login_db.Model, UserMixin):
     regions = login_db.relationship('User_Region', backref='user', foreign_keys=User_Region.user_id, cascade='all, delete', lazy=True)
     provided = login_db.relationship('User_Region', backref='provider', foreign_keys=User_Region.provided_by_id, lazy=True)
 
-    """
+
     def deleteUser(self):
-        # Wenn ein Admin einer Region:
-            Admin an User übergeben, der die Region am längsten hat
-        User löschen
-    """
+        # Entferne Associations
+        login_db.session.query(User_Region).filter(User_Region.user_id == self.id).delete()
+        # Entferne provided_by in Accociations
+        provList = login_db.session.query(User_Region).filter(User_Region.provided_by_id == self.id).all()
+        for prov in provList:
+            prov.provided_by_id = None
+        # Gebe Admin ab/Entferne Regionen ohne andere Nutzer
+        adminRList = login_db.session.query(Region).filter(Region.admin_id == self.id).all()
+        for admR in adminRList:
+            if not list(admR.users) == []:
+                admR.admin_id = admR.users[0].user_id
+            else:
+                admR.admin_id = None
+        # Entferne User
+        login_db.session.query(User).filter(User.username == self.username).delete()
+        login_db.session.commit()
+        print(f"deleted{self.username}")
 
     def get_reset_token(self, expires_sec=1800):
         s = Serializer(app.config['SECRET_KEY'], expires_sec)
@@ -73,7 +87,7 @@ class Region(login_db.Model):
     id = login_db.Column(login_db.Integer, primary_key=True)
     name = login_db.Column(login_db.String(50), unique=True, nullable=False)
     users = login_db.relationship('User_Region', backref='region', cascade='all, delete', lazy=True)
-    admin_id = login_db.Column(login_db.Integer, login_db.ForeignKey('user.id'), nullable=False)
+    admin_id = login_db.Column(login_db.Integer, login_db.ForeignKey('user.id'), default=None)
 
     def __repr__(self):
         return f"Region('{self.name}')"

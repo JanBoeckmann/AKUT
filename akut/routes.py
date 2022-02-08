@@ -19,7 +19,7 @@ def index():
 @app.route("/landingPage")
 @login_required
 def landingPage():
-    return render_template("landingPage.html")
+    return render_template("routes/landingPage.html")
 
 
 @app.route("/login", methods=['GET', 'POST'])
@@ -35,7 +35,7 @@ def login():
             return redirect(next_page) if next_page else redirect(url_for('landingPage'))
         else:
             flash('Login fehlgeschlagen. Bitte überprüfe E-Mail and Passwort.', 'danger')
-    return render_template("login.html", form=form)
+    return render_template("routes/login.html", form=form)
 
 
 @app.route("/register", methods=['GET', 'POST'])
@@ -50,7 +50,7 @@ def register():
         login_db.session.commit()
         flash(f'Account erstellt für {form.username.data}!', 'success')
         return redirect(url_for('login'))
-    return render_template("register.html", form=form)
+    return render_template("routes/register.html", form=form)
 
 
 @app.route("/logout", methods=['GET', 'POST'])
@@ -83,8 +83,13 @@ def account():
 
         if action == "Entfernen":
             if region_manage.admin_id == current_user.id:
-                flash(f'Geben Sie vorher den Admin der Region "{region}" ab!', 'warning')
-                return redirect(url_for('account'))
+                # Wenn kein anderer User Region hat:
+                if len(region_manage.users) == 1:
+                    flash(f'"{region}" ist jetzt Adminlos!', 'info')
+                    region_manage.admin_id = None
+                else:
+                    flash(f'Geben Sie vorher den Admin der Region "{region}" ab!', 'warning')
+                    return redirect(url_for('account'))
             delete = User_Region.query.filter_by(user_id=current_user.id).filter_by(region_id=region_manage.id).first()
             login_db.session.delete(delete)
             flash(f'"{region}" gelöscht!', 'success')
@@ -118,7 +123,7 @@ def account():
                 flash(f'Admin von "{region}" abgegeben an "{user}"!', 'success')
             login_db.session.commit()
             return redirect(url_for('account'))
-    return render_template("account.html", regions=regionList)
+    return render_template("routes/account.html", regions=regionList)
 
 
 def send_reset_email(user):
@@ -182,7 +187,7 @@ def upload():
                                                   request.form.get("reuseFile"))
         myDatabaseHandler.initialize_optimization_parameters("init")
         print("data written to DB successfully")
-    return render_template("upload.html")
+    return render_template("routes/upload.html")
 
 
 @app.route("/delete", methods=['GET', 'POST'])
@@ -191,7 +196,7 @@ def delete():
     if request.method == "POST":
         myDatabaseHandler = databaseHandler(request.form.get("region"), "database.db")
         myDatabaseHandler.deleteRegion()
-    return render_template("delete.html")
+    return render_template("routes/delete.html")
 
 
 @app.route("/deleteWholeData", methods=['GET', 'POST'])
@@ -200,7 +205,7 @@ def deleteWholeData():
     if request.method == "POST":
         myDatabaseHandler = databaseHandler("dummyRegion", "database.db")
         myDatabaseHandler.deleteWholeData()
-    return render_template("deleteWholeData.html")
+    return render_template("routes/deleteWholeData.html")
 
 
 @app.route("/uploadBuildings", methods=['GET', 'POST'])
@@ -220,7 +225,7 @@ def uploadBuildings():
         myDatabaseHandler.initializeTablesInDatabase()
         file.save(os.path.join(folder, filename))
         myDatabaseHandler.writeUploadedBuildingsToDatabase(folder, filename)
-    return render_template("uploadBuildings.html")
+    return render_template("routes/uploadBuildings.html")
 
 
 @app.route("/modifyGraph")
@@ -232,7 +237,7 @@ def modifyGraph():
     for header in headers:
         newHeader = header + ("buttonDisplay_" + header[0], "buttonDraw_" + header[0])
         handledHeaders.append(newHeader)
-    return render_template("modifyGraph.html", headers=handledHeaders)
+    return render_template("routes/modifyGraph.html", headers=handledHeaders)
 
 
 @app.route("/modifyGraphDraw_process", methods=["POST"])
@@ -280,7 +285,7 @@ def modifyBuildings():
     for header in headers:
         newHeader = header + ("buttonDraw_" + header[0],)
         handledHeaders.append(newHeader)
-    return render_template("modifyBuildings.html", headers=handledHeaders)
+    return render_template("routes/modifyBuildings.html", headers=handledHeaders)
 
 
 @app.route("/modifyBuildingsDraw_process", methods=["GET", "POST"])
@@ -333,7 +338,7 @@ def uploadKataster():
         myDatabaseHandler = databaseHandler(request.form.get("region"), "database.db")
         file.save(os.path.join(folder, filename))
         myDatabaseHandler.writeUploadedKatasterToDatabase(folder, filename)
-    return render_template("uploadKataster.html")
+    return render_template("routes/uploadKataster.html")
 
 
 @app.route("/uploadKatasterAsXml", methods=['GET', 'POST'])
@@ -355,7 +360,7 @@ def uploadKatasterAsXml():
             myDatabaseHandler.writeUploadedKatasterAsXmlToDatabase(folder, filename)
         elif filename.rsplit('.', 1)[1].lower() == "shp":
             myDatabaseHandler.writeUploadedKatasterAsShpToDatabase(folder, filename)
-    return render_template("uploadKatasterAsXml.html")
+    return render_template("routes/uploadKatasterAsXml.html")
 
 
 @app.route("/uploadEinzugsgebiete", methods=['GET', 'POST'])
@@ -391,8 +396,11 @@ def uploadEinzugsgebiete():
         if not association_exists:
             region_current.users.append(User_Region(user=current_user))
             login_db.session.commit()
+            # Falls Adminlose Region:
+            if region_current.admin_id == None:
+                region_current.admin_id = current_user.id
 
-    return render_template("uploadEinzugsgebiete.html")
+    return render_template("routes/uploadEinzugsgebiete.html")
 
 
 @app.route("/showKataster")
@@ -404,7 +412,7 @@ def showKataster():
     for header in headers:
         newHeader = header + ("buttonDisplay_" + header[0],)
         handledHeaders.append(newHeader)
-    return render_template("showKataster.html", headers=handledHeaders)
+    return render_template("routes/showKataster.html", headers=handledHeaders)
 
 
 @app.route("/modifyKatasterSaveToDatabase_process", methods=["POST"])
@@ -450,7 +458,7 @@ def showGrid():
     for header in headers:
         newHeader = header + ("buttonDisplay_" + header[0],)
         handledHeaders.append(newHeader)
-    return render_template("showGrid.html", headers=handledHeaders)
+    return render_template("routes/showGrid.html", headers=handledHeaders)
 
 
 @app.route("/showGridDisplay_process", methods=["POST"])
@@ -483,7 +491,7 @@ def computeMitMassnahme():
     for header in headers:
         newHeader = header + ("buttonBerechnen_" + header[0],)
         handledHeaders.append(newHeader)
-    return render_template("computeMitMassnahme.html", headers=handledHeaders)
+    return render_template("routes/computeMitMassnahme.html", headers=handledHeaders)
 
 
 @app.route('/computeMitMassnahme_process', methods=['GET', 'POST'])
@@ -510,7 +518,7 @@ def computeGraphOfRelevantNodes():
     for header in headers:
         newHeader = header + ("buttonBerechnen_" + header[0],)
         handledHeaders.append(newHeader)
-    return render_template("computeGraphOfRelevantNodes.html", headers=handledHeaders)
+    return render_template("routes/computeGraphOfRelevantNodes.html", headers=handledHeaders)
 
 
 @app.route('/computeGraphOfRelevantNodes_process', methods=['GET', 'POST'])
@@ -553,7 +561,7 @@ def computeOptimalSolution():
     for header in headers:
         newHeader = header + ("buttonBerechnen_" + header[0],)
         handledHeaders.append(newHeader)
-    return render_template("computeOptimalSolution.html", headers=handledHeaders)
+    return render_template("routes/computeOptimalSolution.html", headers=handledHeaders)
 
 
 @app.route('/computeOptimalSolution_process', methods=['GET', 'POST'])
@@ -581,7 +589,7 @@ def showOptimalSolution():
         if header[3] == 1:
             newHeader = header + ("buttonDisplay_" + header[0],)
             handledHeadersSolved.append(newHeader)
-    return render_template("showOptimalSolution.html", headers=handledHeadersSolved)
+    return render_template("routes/showOptimalSolution.html", headers=handledHeadersSolved)
 
 
 @app.route('/showOptimalSolutionDisplay_process', methods=['GET', 'POST'])
@@ -619,7 +627,7 @@ def showHandlungsbedarf():
         if header[3] == 1:
             newHeader = header + ("buttonDisplay_" + header[0],)
             handledHeadersSolved.append(newHeader)
-    return render_template("showHandlungsbedarf.html", headers=handledHeadersSolved)
+    return render_template("routes/showHandlungsbedarf.html", headers=handledHeadersSolved)
 
 
 @app.route('/showHandlungsbedarfDisplay_process', methods=['GET', 'POST'])
@@ -661,7 +669,7 @@ def modifyHeaderData():
         newHeader = header + ("buttonDisplay_" + header[0],)
         handledHeadersSolved.append(newHeader)
     # jsonToReturnToFrontend = json.dumps(jsonToReturnToFrontend)
-    return render_template("modifyHeaderData.html", headers=handledHeadersSolved, headersAsJson=jsonToReturnToFrontend)
+    return render_template("routes/modifyHeaderData.html", headers=handledHeadersSolved, headersAsJson=jsonToReturnToFrontend)
 
 
 @app.route("/modifyHeaderDataSaveToDatabase_process", methods=["POST"])
@@ -691,7 +699,7 @@ def modifyOptimizationParameters():
     parameters_for_some_region = parameters[some_region]
     for param in parameters_for_some_region[list(parameters_for_some_region.keys())[0]].keys():
         parameter_names.append(param)
-    return render_template("modifyOptimizationParameters.html", headers=headers, parameters=parameters,
+    return render_template("routes/modifyOptimizationParameters.html", headers=headers, parameters=parameters,
                            parameterNames=parameter_names)
 
 
@@ -720,7 +728,7 @@ def showMassnahmenSolution():
         if header[3] == 1:
             newHeader = header + ("buttonDisplay_" + header[0],)
             handledHeadersSolved.append(newHeader)
-    return render_template("showMassnahmenSolution.html", headers=handledHeadersSolved)
+    return render_template("routes/showMassnahmenSolution.html", headers=handledHeadersSolved)
 
 
 @app.route('/showMassnahmenDisplay_process', methods=['GET', 'POST'])
@@ -749,7 +757,7 @@ def showMassnahmenDisplayProcess():
 @app.route("/copyRegion")
 @login_required
 def copyRegion():
-    return render_template("copyRegion.html")
+    return render_template("routes/copyRegion.html")
 
 
 @app.route("/copyRegion_process", methods=['GET', 'POST'])
@@ -773,7 +781,7 @@ def computeMassnahmenKataster():
     for header in headers:
         newHeader = header + ("buttonBerechnen_" + header[0],)
         handledHeaders.append(newHeader)
-    return render_template("computeMassnahmenKataster.html", headers=handledHeaders)
+    return render_template("routes/computeMassnahmenKataster.html", headers=handledHeaders)
 
 
 @app.route('/computeMassnahmenKataster_process', methods=['GET', 'POST'])
@@ -800,7 +808,7 @@ def showFliesswege():
         if header[3] == 1:
             newHeader = header + ("buttonDisplay_" + header[0],)
             handledHeadersSolved.append(newHeader)
-    return render_template("showFliesswege.html", headers=handledHeadersSolved)
+    return render_template("routes/showFliesswege.html", headers=handledHeadersSolved)
 
 
 @app.route('/showFliesswegeDisplay_process', methods=['GET', 'POST'])

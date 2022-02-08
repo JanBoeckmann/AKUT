@@ -33,6 +33,7 @@
             var drawnItems;
             var mapsPlaceholder = [];
             var selectedRegion = "none";
+            var legend = L.control({position: 'bottomright'});
 
             L.Map.addInitHook(function () {
                 mapsPlaceholder.push(this); // Use whatever global scope variable you like.

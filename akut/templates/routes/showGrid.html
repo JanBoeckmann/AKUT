@@ -11,7 +11,9 @@
         integrity="sha512-GffPMF3RvMeYyc1LWMHtK8EbPv0iNZ8/oTtHPx9/cc2ILxQ+u905qIwdpULaqDkyBKgOaB57QTMg7ztg8Jm2Og=="
         crossorigin=""></script>
 
-<script src="{{ url_for('static', filename='js/showHandlungsbedarfDisplay.js') }}"></script>
+<script src="{{ url_for('static', filename='js/showGridDisplay.js') }}"></script>
+<script src="{{ url_for('static', filename='js/popupCheckboxActiveForGrid.js') }}"></script>
+<script src="{{ url_for('static', filename='js/showGridSaveToDatabase.js') }}"></script>
 
 <style>
             #graph-container {
@@ -25,6 +27,7 @@
             #mapid { height: 500px; }
             #bottomActionsContainer { margin-top: 20px; }
 
+
 </style>
 
 <script>
@@ -33,13 +36,7 @@
             var drawnItems;
             var mapsPlaceholder = [];
             var selectedRegion = "none";
-            var colorMapping = {
-                0: '#ffffff',
-                1: '#ffffcc',
-                2: '#ffcc66',
-                3: '#ff8533',
-                4: '#990000'
-            }
+            var legend = L.control({position: 'bottomright'});
 
             L.Map.addInitHook(function () {
                 mapsPlaceholder.push(this); // Use whatever global scope variable you like.
@@ -50,8 +47,20 @@
                 });
             });
 
+
 </script>
 {% endblock head %}
+
 {% block title %}
-<a class="navbar-brand mr-4">Handlungsbedarf</a>
+<a class="navbar-brand mr-4">Modellgebiet</a>
 {% endblock title %}
+
+{% block content2 %}
+<div class="container" style="display:none" id="bottomActionsContainer">
+    <form class="form-inline formSave" id="saveToDatabase" method="post">
+        <td>
+            <button type="submit" class="btn btn-primary">In Datenbank Speichern</button>
+        </td>
+    </form>
+</div>
+{% endblock content2 %}

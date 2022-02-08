@@ -43,7 +43,7 @@
 <script>
             var mapIsLoaded = false;
             var mymap;
-            var drawnItems;
+            var drawnItems = new L.FeatureGroup();
             var mapsPlaceholder = [];
             var selectedRegion = "none";
             var polygonId = 1;
@@ -57,12 +57,31 @@
                 "Landwirtschaft": '#ff5050',
                 "Forstwirtschaft": '#ff00ff'
             }
+            var legend = L.control({position: 'bottomright'});
 
             L.Map.addInitHook(function () {
                 mapsPlaceholder.push(this); // Use whatever global scope variable you like.
             });
             document.addEventListener("DOMContentLoaded", function(){
                 mymap = L.map('mapid');
+            });
+
+            // Toolbar left (edited)
+            var myDrawControl = new L.Control.Draw({
+                // position: 'topright',
+                draw: {
+
+                    polyline: false,
+                    polygon: true,
+                    rectangle: false,  // Turns off this drawing tool
+                    marker: false,
+                    circle: false,
+                    circlemarker: false // falscher name
+                    },
+                edit: {
+                    featureGroup: drawnItems,
+                  remove: true
+                       }
             });
 
 

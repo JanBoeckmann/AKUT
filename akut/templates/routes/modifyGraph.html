@@ -45,7 +45,7 @@
 <script>
             var mapIsLoaded = false;
             var mymap;
-            var drawnItems;
+            var drawnItems = new L.FeatureGroup();
             var mapsPlaceholder = [];
             var selectedRegion = "none";
             var actualPolyline;
@@ -61,6 +61,23 @@
                 mymap = L.map('mapid');
             });
 
+            // Toolbar left (edited)
+            var myDrawControl = new L.Control.Draw({
+                // position: 'topright',
+                draw: {
+
+                    polyline: true,
+                    polygon: true,
+                    rectangle: false,  // Turns off this drawing tool
+                    marker: false,
+                    circle: false,
+                    circlemarker: false // falscher name
+                    },
+                edit: {
+                    featureGroup: drawnItems,
+                  remove: true
+                       }
+            });
 </script>
 
 <script>
@@ -72,7 +89,7 @@
                         tiefeHoeheText = "Höhe [m]:"
                     }
                     document.getElementById("tiefeHoeheText").innerHTML = tiefeHoeheText;
-                    actualPolyline.setStyle({fillColor: colorMapping[this.value], color: colorMapping[this.value]});
+                    actualPolyline.setStyle({fillColor: colorMapping[this.value], color: colorMapping[this.value], opacity: this.value});
                 });
             });
 

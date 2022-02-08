@@ -15,7 +15,7 @@ $(document).ready(function() {
 			mySavedData = data;
 
             //load map
-			var currentMap = mapsPlaceholder[0];
+			currentMap = mapsPlaceholder[0];  // global
             if(mapIsLoaded){
                 currentMap.eachLayer(function (layer) {
                     currentMap.removeLayer(layer);
@@ -23,6 +23,7 @@ $(document).ready(function() {
             }
             mapIsLoaded = true;
 
+            // Definiere Kameraposition
             center_lat = 49.454;
             center_lon = 7.912;
             if(mySavedData.center_lat){
@@ -40,12 +41,15 @@ $(document).ready(function() {
             //     'Imagery © <a href="http://mapbox.com">Mapbox</a>',
             // }).addTo(currentMap);
 
+            // Copyright
             var onmapsCopyright = "Karte: onmaps.de ©GeoBasis-DE/BKG/ZSHH 2021";
 
+            // Setze Grenzen
             var southWest = L.latLng(center_lat - 0.1, center_lon - 0.1),
 			    northEast = L.latLng(center_lat + 0.1, center_lon + 0.1),
 			    bounds = L.latLngBounds(southWest, northEast);
 
+            // Karten-Provider
             var onmapsWMSLayer = L.tileLayer.wms("http://wms.onmaps.de/", {
                 key: 'c2c245d7f744b6266fdb4d6ccd43d8e8',
                 bounds: bounds,
@@ -59,23 +63,23 @@ $(document).ready(function() {
 
             currentMap.addLayer(onmapsWMSLayer);
 
-            var legend = L.control({position: 'bottomright'});
-
+            // Legende
             legend.onAdd = function (currentMap) {
-
                 var div = L.DomUtil.create('div', 'info legend');
 
+                if (selectedDisplay !== 3){
                 div.innerHTML += 'Handlungsbedarf<br>';
                 div.innerHTML += '<div><i style="background:' + colorMapping[0] + '"></i> ' + 'keiner <br></div>';
                 div.innerHTML += '<div><i style="background:' + colorMapping[1] + '"></i> ' + 'gering <br></div>';
                 div.innerHTML += '<div><i style="background:' + colorMapping[2] + '"></i> ' + 'mäßig <br></div>';
                 div.innerHTML += '<div><i style="background:' + colorMapping[3] + '"></i> ' + 'hoch <br></div>';
-                div.innerHTML += '<div><i style="background:' + colorMapping[4] + '"></i> ' + 'sehr hoch <br></div>';
+                div.innerHTML += '<div><i style="background:' + colorMapping[4] + '"></i> ' + 'sehr hoch <br></div>';}
+                if (selectedDisplay !== 2){
                 div.innerHTML += 'Wasserstand<br>';
                 div.innerHTML += '<div><i style="background:' + '#99ccff' + '"></i> ' + '1-10cm <br></div>';
                 div.innerHTML += '<div><i style="background:' + '#4da6ff' + '"></i> ' + '10-30cm <br></div>';
                 div.innerHTML += '<div><i style="background:' + '#0059b3' + '"></i> ' + '30-50cm <br></div>';
-                div.innerHTML += '<div><i style="background:' + '#003366' + '"></i> ' + '50cm + <br></div>';
+                div.innerHTML += '<div><i style="background:' + '#003366' + '"></i> ' + '50cm + <br></div>';}
 
                 return div;
             };
@@ -84,6 +88,9 @@ $(document).ready(function() {
 
             //var einzugsgebiet = L.polygon(mySavedData.Einzugsgebiete).setStyle({fillColor: '#FF00FF'}).addTo(currentMap);
 
+            // Wasserstand-Polygone
+            drawnWasserstand = new L.FeatureGroup();  // global
+            var wasserPolyLayer = [];
             for (id in mySavedData.Flooded){
                 var drawPolygon = true;
                 if(mySavedData.waterHeight[id] <= 0.0001){
@@ -102,7 +109,8 @@ $(document).ready(function() {
                     drawPolygon = false;
                 }
                 if(drawPolygon){
-                    var newPolygon = L.polygon(mySavedData.Grid[id], {schadensklasse: 1, title: id}).setStyle({fillColor: color, weight: 0, fillOpacity: 0.65}).addTo(currentMap);
+                    var newPolygon = L.polygon(mySavedData.Grid[id], {schadensklasse: 1, title: id}).setStyle({fillColor: color, weight: 0, fillOpacity: 0.65});  // .addTo(currentMap);
+                    wasserPolyLayer.push(newPolygon);
                     newPolygon.on('click', onPolygonClick);
 
                     function onPolygonClick(event) {
@@ -115,7 +123,15 @@ $(document).ready(function() {
                     }
                 }
             }
+            for (let layer of wasserPolyLayer){
+                drawnWasserstand.addLayer(layer);
+            }
+            currentMap.addLayer(drawnWasserstand);
 
+
+            // Handlungsbedarf-Polygone
+            drawnHandlungsbedarf = new L.FeatureGroup();  // global
+            var handlungsPolyLayer = [];
             for (building in mySavedData.Buildings){
                 var color = colorMapping[mySavedData.handlungsbedarf[building]];
 
@@ -124,8 +140,13 @@ $(document).ready(function() {
                 }else{
                     var m = L.polygon( mySavedData.Buildings[building]["position"], {title: building, type: "Building", properties: mySavedData.Buildings[building].properties, active: mySavedData.Buildings[building].active.toString(), fillColor: color, color: color})
                 }
-                m.addTo(currentMap);
+                // m.addTo(currentMap);
+                handlungsPolyLayer.push(m);
             }
+            for (let layer of handlungsPolyLayer){
+                drawnHandlungsbedarf.addLayer(layer);
+            }
+            currentMap.addLayer(drawnHandlungsbedarf);
 
 /*
             for (grid in mySavedData.Grid){

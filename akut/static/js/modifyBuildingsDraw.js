@@ -61,7 +61,6 @@ $(document).ready(function() {
 
             currentMap.addLayer(onmapsWMSLayer);
 
-            var legend = L.control({position: 'bottomright'});
 
             legend.onAdd = function (currentMap) {
 
@@ -81,23 +80,14 @@ $(document).ready(function() {
             legend.addTo(currentMap);
 
             // remove draw control
-            var myDrawControl = $('.leaflet-draw');
             if(myDrawControl.length > 0){
                 myDrawControl[0].remove();
             }
 
             // Initialise the FeatureGroup to store editable layers
-            var drawnItems = new L.FeatureGroup();
             mymap.addLayer(drawnItems);
 
-            // Initialise the draw control and pass it the FeatureGroup of editable layers
-            var drawControl = new L.Control.Draw({
-              edit: {
-                featureGroup: drawnItems
-              }
-            });
-
-            mymap.addControl(drawControl);
+            mymap.addControl(myDrawControl);
 
             mymap.on(L.Draw.Event.CREATED, function (e) {
                 var type = e.layerType
@@ -160,11 +150,14 @@ $(document).ready(function() {
 
             for (building in mySavedData.Buildings){
                 var color = colorMapping[mySavedData.Buildings[building].akteur];
+                var schkl = mySavedData.Buildings[building].schadensklasse;
+                var opacity = (25*schkl)/100;  // 25/50/75/100
+                var fillOpacity = opacity/2;
 
                 if (mySavedData.Buildings[building].active.toString() == "1"){
-                    var m = L.polygon( mySavedData.Buildings[building]["position"], {title: building, type: "Building", properties: mySavedData.Buildings[building].properties, active: mySavedData.Buildings[building].active.toString(), fillColor: color, color: color})
+                    var m = L.polygon( mySavedData.Buildings[building]["position"], {title: building, type: "Building", properties: mySavedData.Buildings[building].properties, active: mySavedData.Buildings[building].active.toString(), fillColor: color, color: color, opacity: opacity, fillOpacity: fillOpacity})
                 }else{
-                    var m = L.polygon( mySavedData.Buildings[building]["position"], {title: building, type: "Building", properties: mySavedData.Buildings[building].properties, active: mySavedData.Buildings[building].active.toString(), fillColor: color, color: color})
+                    var m = L.polygon( mySavedData.Buildings[building]["position"], {title: building, type: "Building", properties: mySavedData.Buildings[building].properties, active: mySavedData.Buildings[building].active.toString(), fillColor: color, color: color, opacity: opacity, fillOpacity: fillOpacity})
                 }
                 drawnItems.addLayer(m);
                 if (highestIdBuildings < parseInt(building)){
