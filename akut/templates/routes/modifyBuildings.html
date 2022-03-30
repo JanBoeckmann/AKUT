@@ -76,7 +76,7 @@
                     rectangle: false,  // Turns off this drawing tool
                     marker: false,
                     circle: false,
-                    circlemarker: false // falscher name
+                    circlemarker: false
                     },
                 edit: {
                     featureGroup: drawnItems,
@@ -97,11 +97,11 @@
     <div class="col-md-8">
         <p>
             <a class="btn btn-primary" data-toggle="collapse" href="#collapseExample" role="button"
-               aria-expanded="false" aria-controls="collapseExample">
+               aria-expanded="true" aria-controls="collapseExample">
                 Verfügbare Regionen Öffnen/Schließen
             </a>
         </p>
-        <div class="collapse" id="collapseExample">
+        <div class="collapse in" id="collapseExample">
             <div class="card card-body">
                 <table class="table table-hover">
                     <thead>
@@ -111,10 +111,10 @@
                     </tr>
                     </thead>
                     <tbody>
-                    {% for header in headers %}
+                    {% for region in regions %}
                     <tr>
-                        <td>{{header[0]}}</td>
-                        <form class="form-inline formDraw" id={{header[-1]}} method="post">
+                        <td>{{region.name}}</td>
+                        <form class="form-inline formDraw" id={{region.id}} method="post">
                             <td>
                                 <button type="submit" class="btn btn-primary">Auswählen</button>
                             </td>

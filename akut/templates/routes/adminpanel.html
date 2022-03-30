@@ -1,0 +1,105 @@
+{% extends "layouts/navNorm.html" %}
+
+{% block head %}
+{% endblock head %}
+
+{% block info %}
+Bitte wählen Sie für die entsprechende Region bzw. den entsprechenden User rechts "Ändern" oder "Löschen", um die
+entsprechende Aktion auszuführen.
+{% endblock info %}
+
+{% block title %}
+<a class="navbar-brand mr-4">Admin-Panel</a>
+{% endblock title %}
+
+{% block content %}
+<h2>Verwalte Regionen:</h2>
+<div class="container">
+    <form method="POST" action="">
+        <div class="col-md-8">
+            <div class="container" id="bottomDisplayContainer">
+                <table class="table-sortable" border="1">
+                    <thead>
+                    <tr>
+                        <td> Name</td>
+                        <td> Id</td>
+                        <td> Admin-User</td>
+                        <td> Aktuelle User</td>
+                        <td> Aktion</td>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% for region in region_info %}
+                    <tr>
+                        <td>
+                            <div> {{ region_info[region].name }}</div>
+                        </td>
+                        <td>
+                            <div> {{ region_info[region].id }}</div>
+                        </td>
+                        <td>
+                            <div> {{ region_info[region].admin_name }}</div>
+                        </td>
+                        <td>
+                            <div> {{ region_info[region]["users_string"] }}</div>
+                        </td>
+                        <td><a href="{{url_for('panel_edit_region', regionid=region_info[region].id)}}">Ändern</a> //
+                            <a href="{{url_for('panel_delete_region', regionid=region_info[region].id)}}"
+                               onclick="return confirm('Region {{ region_info[region].name }} wirklich löschen?');">Löschen</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <div id="successAlert" class="alert alert-success" role="alert" style="display:none;"></div>
+            <div id="errorAlert" class="alert alert-danger" role="alert" style="display:none;"></div>
+        </div>
+    </form>
+</div>
+
+<h2>Verwalte User:</h2>
+<div class="container">
+    <form method="POST" action="">
+        <div class="col-md-8">
+            <div class="container" id="bottomDisplayContainer_2">
+                <table class="table-sortable" border="1">
+                    <thead>
+                    <tr>
+                        <td> Name</td>
+                        <td> Id</td>
+                        <td> Email</td>
+                        <td> Aktuelle Regionen</td>
+                        <td> Aktion</td>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% for user in user_info %}
+                    <tr>
+                        <td>
+                            <div> {{ user_info[user].username }}</div>
+                        </td>
+                        <td>
+                            <div> {{ user_info[user].id }}</div>
+                        </td>
+                        <td>
+                            <div> {{ user_info[user].email }}</div>
+                        </td>
+                        <td>
+                            <div> {{ user_info[user]["regions_string"] }}</div>
+                        </td>
+                        <td><a href="{{url_for('panel_edit_user', userid=user_info[user].id)}} ">Ändern</a> //
+                            <a href="{{url_for('panel_delete_user', userid=user_info[user].id)}}"
+                               onclick="return confirm('User {{ user_info[user].username }} wirklich löschen?');">Löschen</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <div id="successAlert_2" class="alert alert-success" role="alert" style="display:none;"></div>
+            <div id="errorAlert_2" class="alert alert-danger" role="alert" style="display:none;"></div>
+        </div>
+    </form>
+</div>
+{% endblock content %}

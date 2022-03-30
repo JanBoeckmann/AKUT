@@ -19,7 +19,7 @@
           <li>Modellgrenzen-Datei hochladen (Dateiformat: .csv)</li>
         </ul>
         <button type="button" class="btn btn-lg btn-block btn-primary btn-uploads"
-                onclick="location.href='{{ url_for('uploadEinzugsgebiete') }}'">Zum Modul
+                onclick="location.href='{{ url_for('upload_einzugsgebiete') }}'">Zum Modul
         </button>
       </div>
     </div>
@@ -49,7 +49,7 @@
           <li>(Dateiformat: .xml)</li>
         </ul>
         <button type="button" class="btn btn-lg btn-block btn-primary btn-uploads"
-                onclick="location.href='{{ url_for('uploadKatasterAsXml') }}'">Zum Modul
+                onclick="location.href='{{ url_for('upload_kataster_as_xml') }}'">Zum Modul
         </button>
       </div>
     </div>
@@ -66,7 +66,7 @@
           <li>Hier wird eine bestehende Region kopiert.</li>
         </ul>
         <button type="button" class="btn btn-lg btn-block btn-primary btn-uploads"
-                onclick="location.href='{{ url_for('copyRegion') }}'">Zum Modul
+                onclick="location.href='{{ url_for('copy_region') }}'">Zum Modul
         </button>
       </div>
     </div>
@@ -90,7 +90,7 @@
           <li>Hier wird die Niederschlagsbelastung bearbeitet.</li>
         </ul>
         <button type="button" class="btn btn-lg btn-block btn-primary btn-eingangsdaten"
-                onclick="location.href='{{ url_for('modifyHeaderData') }}'">Zum Modul
+                onclick="location.href='{{ url_for('modify_header_data') }}'">Zum Modul
         </button>
       </div>
     </div>
@@ -103,7 +103,7 @@
           <li>Hier werden Gebäude inkl. zugehöriger Akteursgruppe und Schadensklasse bearbeitet.</li>
         </ul>
         <button type="button" class="btn btn-lg btn-block btn-primary btn-eingangsdaten"
-                onclick="location.href='{{ url_for('modifyBuildings') }}'">Zum Modul
+                onclick="location.href='{{ url_for('modify_buildings') }}'">Zum Modul
         </button>
       </div>
     </div>
@@ -125,7 +125,7 @@
           <li>Hier wird die Kooperationsbereitschaft über die Liegenschaften bearbeitet.</li>
         </ul>
         <button type="button" class="btn btn-lg btn-block btn-primary btn-modellierung"
-                onclick="location.href='{{ url_for('showKataster') }}'">Zum Modul
+                onclick="location.href='{{ url_for('show_kataster') }}'">Zum Modul
         </button>
       </div>
     </div>
@@ -138,7 +138,7 @@
           <li>Hier werden Maßnahmen zur Rückhaltung und Ableitung bearbeitet.</li>
         </ul>
         <button type="button" class="btn btn-lg btn-block btn-primary btn-modellierung"
-                onclick="location.href='{{ url_for('modifyGraph') }}'">Zum Modul
+                onclick="location.href='{{ url_for('modify_graph') }}'">Zum Modul
         </button>
       </div>
     </div>
@@ -151,7 +151,7 @@
           <li>Hier werden die Optimierungsparameter bearbeitet.</li>
         </ul>
         <button type="button" class="btn btn-lg btn-block btn-primary btn-modellierung"
-                onclick="location.href='{{ url_for('modifyOptimizationParameters') }}'">Zum Modul
+                onclick="location.href='{{ url_for('modify_optimization_parameters') }}'">Zum Modul
         </button>
       </div>
     </div>
@@ -168,7 +168,7 @@
           <li>Hier wird die Rasterauflösung angezeigt.</li>
         </ul>
         <button type="button" class="btn btn-lg btn-block btn-primary btn-modellierung"
-                onclick="location.href='{{ url_for('showGrid') }}'">Zum Modul
+                onclick="location.href='{{ url_for('show_grid') }}'">Zum Modul
         </button>
       </div>
     </div>
@@ -193,7 +193,7 @@
           <li>Hier werden die Rasterknoten mit Gebäuden & ggf. Maßnahmen berechnet.</li>
         </ul>
         <button type="button" class="btn btn-lg btn-block btn-primary btn-berechnungen"
-                onclick="location.href='{{ url_for('computeMitMassnahme') }}'">Zum Modul
+                onclick="location.href='{{ url_for('compute_mit_massnahme') }}'">Zum Modul
         </button>
       </div>
     </div>
@@ -207,7 +207,7 @@
           <li>Hier werdem die Rasterknoten mit Fließwegen berechnet.</li>
         </ul>
         <button type="button" class="btn btn-lg btn-block btn-primary btn-berechnungen"
-                onclick="location.href='{{ url_for('computeGraphOfRelevantNodes') }}'">Zum Modul
+                onclick="location.href='{{ url_for('compute_graph_of_relevant_nodes') }}'">Zum Modul
         </button>
       </div>
     </div>
@@ -221,7 +221,7 @@
           <li>Hier wird die Verbindung von Liegenschaften zu Maßnahmen berechnet.</li>
         </ul>
         <button type="button" class="btn btn-lg btn-block btn-primary btn-berechnungen"
-                onclick="location.href='{{ url_for('computeMassnahmenKataster') }}'">Zum Modul
+                onclick="location.href='{{ url_for('compute_massnahmen_kataster') }}'">Zum Modul
         </button>
       </div>
     </div>
@@ -239,7 +239,7 @@
           <li>Hier wird die Lösung berechnet. Dieser Prozess kann etwas dauern.</li>
         </ul>
         <button type="button" class="btn btn-lg btn-block btn-primary btn-berechnungen"
-                onclick="location.href='{{ url_for('computeOptimalSolution') }}'">Zum Modul
+                onclick="location.href='{{ url_for('compute_optimal_solution') }}'">Zum Modul
         </button>
       </div>
     </div>
@@ -263,7 +263,7 @@
           <li>Hier werden der Handlungsbedarf und die Wasserstände angezeigt.</li>
         </ul>
         <button type="button" class="btn btn-lg btn-block btn-primary btn-loesungen"
-                onclick="location.href='{{ url_for('showHandlungsbedarf') }}'">Zum Modul
+                onclick="location.href='{{ url_for('show_handlungsbedarf') }}'">Zum Modul
         </button>
       </div>
     </div>
@@ -276,7 +276,7 @@
           <li>Hier werden die Wasserflüsse angezeigt.</li>
         </ul>
         <button type="button" class="btn btn-lg btn-block btn-primary btn-loesungen"
-                onclick="location.href='{{ url_for('showFliesswege') }}'">Zum Modul
+                onclick="location.href='{{ url_for('show_fliesswege') }}'">Zum Modul
         </button>
       </div>
     </div>
@@ -289,7 +289,7 @@
           <li>Hier wird die optimale Maßnahmenkombination angezeigt.</li>
         </ul>
         <button type="button" class="btn btn-lg btn-block btn-primary btn-loesungen"
-                onclick="location.href='{{ url_for('showMassnahmenSolution') }}'">Zum Modul
+                onclick="location.href='{{ url_for('show_massnahmen_solution') }}'">Zum Modul
         </button>
       </div>
     </div>

@@ -1,0 +1,85 @@
+{% extends "layouts/navNorm.html" %}
+
+{% block head %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.0/jquery.min.js"></script>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-select@1.13.9/dist/css/bootstrap-select.min.css" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap-select@1.13.9/dist/js/bootstrap-select.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap-select@1.13.9/dist/js/i18n/defaults-de_DE.min.js"></script>
+{% endblock head %}
+
+{% block info %}
+Editieren sie das Feld "Name", um den Regionsnamen zu ändern. Bitte beachten Sie, dass keine zwei Regionen mit gleichem
+Namen existieren dürfen. <br>
+Wählen Sie zur Änderung der Regionenadmins im Dropdown den entsprechenden User aus, welcher den Admin der Region
+erhalten soll. Es können nur User Admin sein, welche die Region besitzen. <br>
+Wählen Sie zum entfernen/hinzufügen von Usern zur Region im Dropdown den entsprechenden Eintrag aus. Der Admin der
+Region dabei nicht entfernt werden.
+{% endblock info %}
+
+{% block title %}
+<a class="navbar-brand mr-4">Region "{{ region_info["name"] }}" editieren</a>
+{% endblock title %}
+
+{% block content %}
+<form action="{{ url_for('panel_update_region')}}" id="form" method="post">
+    <div class="form-group">
+        <h5>Name:</h5>
+        <input class="form-control" type="text" name="name" id="region_name" placeholder="Name"
+               value={{region_info["name"]}}>
+    </div>
+    <div class="form-group">
+        <input class="form-control" type="hidden" name="region_id" id="region_id" placeholder="Name"
+               value={{region_info["id"]}}>
+    </div>
+    <div class="form-group">
+        <h5>Admin:</h5>
+        <select class="selectpicker" name="change_admin" id="change_admin">
+            {% for user in region_info["users"] %}
+            {% if user == region_info["admin_name"] %}
+            <option value="{{user}}" selected>
+                {{user}}
+            </option>
+            {% else %}
+            <option value="{{user}}">
+                {{user}}
+            </option>
+            {% endif %}
+            {% endfor %}
+        </select>
+    </div>
+    <div class="form-group">
+        <h5>User entfernen/hinzufügen:</h5>
+        <select multiple data-title="User entfernen" name="remove_user[]" id="remove_user[]" class="selectpicker">
+            {% for user in region_info["users"] %}
+            {% if not user == region_info["admin_name"] %}
+            <option value="{{user}}">
+                {{user}}
+            </option>
+            {% endif %}
+            {% endfor %}
+        </select>
+    </div>
+    <div class="form-group">
+        <select multiple data-title="User hinzufügen" class="selectpicker" name="insert_user[]" id="insert_user[]">
+            {% for user in region_info["users_not"] %}
+            <option value="{{user}}">
+                {{user}}
+            </option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="form-group">
+        <button class="btn btn-primary">Submit</button>
+    </div>
+</form>
+<div class="form-group">
+    <button class="btn btn-primary" onclick="reset()">Reset</button>
+</div>
+
+<script>
+function reset(){
+    document.getElementById("form").reset();
+    $('select').selectpicker('refresh');
+}
+</script>
+{% endblock content %}

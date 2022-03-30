@@ -7,7 +7,6 @@
 
 <script>
             var mySavedData = JSON.parse('{{ headersAsJson | tojson | safe}}');
-
 </script>
 
 <script>
@@ -42,7 +41,7 @@
             <select class="selectpicker" id="selectpickerId">
                 <option value="" selected disabled>Region auswählen</option>
                 {% for header in headers %}
-                <option value={{header[0]}}>{{header[0]}}</option>
+                <option value={{headers[header]["region"]}}>{{headers[header]["region"]}}</option>
                 {% endfor %}
             </select>
             <form>

@@ -14,9 +14,9 @@
             <tbody>
             {% for header in headers %}
             <tr>
-                <td>{{header[0]}}</td>
-                <td>{{header[2]}}</td>
-                <form class="form-inline" id={{header[-1]}} method="post">
+                <td>{{header}}</td>
+                <td>{{headers[header]["date_uploaded"]}}</td>
+                <form class="form-inline" id={{header}} method="post">
                     <td>
                         <button type="submit" class="btn btn-primary">berechnen</button>
                     </td>

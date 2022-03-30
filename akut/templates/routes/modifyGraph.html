@@ -110,7 +110,7 @@
                 Verfügbare Regionen Öffnen/Schließen
             </a>
         </p>
-        <div class="collapse" id="collapseExample">
+        <div class="collapse in" id="collapseExample">
             <div class="card card-body">
                 <table class="table table-hover">
                     <thead>
@@ -122,8 +122,8 @@
                     <tbody>
                     {% for header in headers %}
                     <tr>
-                        <td>{{header[0]}}</td>
-                        <form class="form-inline formDraw" id={{header[-1]}} method="post">
+                        <td>{{header}}</td>
+                        <form class="form-inline formDraw" id={{header}} method="post">
                             <td>
                                 <button type="submit" class="btn btn-primary">Auswählen</button>
                             </td>

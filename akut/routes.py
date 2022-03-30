@@ -1,15 +1,18 @@
-from flask import url_for, request, render_template, redirect, jsonify, flash
-from flask_login import login_user, current_user, logout_user, login_required
 from werkzeug.utils import secure_filename
-from datetime import *
 
-from akut import app, LoginForm, bcrypt, RegistrationForm, login_db, folder, RequestResetForm, ResetPasswordForm, mail
-from akut.databaseHandler import *
-from akut.models import User, Region, User_Region, allowed
+from flask import render_template, jsonify
+from flask_login import login_required, logout_user
+from akut import app, LoginForm, RegistrationForm, folder, RequestResetForm, ResetPasswordForm, mail, extensions
+from akut.LoginDbHandler import *
+from akut.models import User, Region
+from difflib import SequenceMatcher
 
 from flask_mail import Message
 
 
+# -----------------------------------------
+# ---------- HOME/USERMANAGEMENT ----------
+# -----------------------------------------
 @app.route("/")
 @login_required
 def index():
@@ -18,39 +21,43 @@ def index():
 
 @app.route("/landingPage")
 @login_required
-def landingPage():
+def landing_page():
     return render_template("routes/landingPage.html")
 
 
 @app.route("/login", methods=['GET', 'POST'])
 def login():
     if current_user.is_authenticated:
-        return redirect(url_for('landingPage'))
+        return redirect(url_for('landing_page'))
     form = LoginForm()
     if form.validate_on_submit():
-        user = User.query.filter_by(email=form.email.data).first()
-        if user and bcrypt.check_password_hash(user.password, form.password.data):
-            login_user(user, remember=form.remember.data)
-            next_page = request.args.get('next')
-            return redirect(next_page) if next_page else redirect(url_for('landingPage'))
-        else:
-            flash('Login fehlgeschlagen. Bitte überprüfe E-Mail and Passwort.', 'danger')
+        my_login_handler = LoginDbHandler(None)
+        my_login_handler.login_user(form.email.data, form.password.data, form.remember.data)
+        next_page = request.args.get('next')
+        return redirect(next_page) if next_page else redirect(url_for('landing_page'))
     return render_template("routes/login.html", form=form)
 
 
 @app.route("/register", methods=['GET', 'POST'])
 def register():
     if current_user.is_authenticated:
-        return redirect(url_for('landingPage'))
+        return redirect(url_for('landing_page'))
     form = RegistrationForm()
     if form.validate_on_submit():
-        hashed_pw = bcrypt.generate_password_hash(form.password.data).decode('utf-8')
-        user = User(username=form.username.data, email=form.email.data, password=hashed_pw)
-        login_db.session.add(user)
-        login_db.session.commit()
-        flash(f'Account erstellt für {form.username.data}!', 'success')
-        return redirect(url_for('login'))
+        my_login_handler = LoginDbHandler(None)
+        dumb_username = my_login_handler.register_user(form.username.data, form.email.data,
+                                                       bcrypt.generate_password_hash(form.password.data).decode(
+                                                           'utf-8'))
+        if dumb_username:
+            return redirect(url_for('easter_egg'))
+        else:
+            return redirect(url_for('login'))
     return render_template("routes/register.html", form=form)
+
+
+@app.route("/41x4FU^U0op7f")
+def easter_egg():
+    return render_template("routes/easterEgg.html")
 
 
 @app.route("/logout", methods=['GET', 'POST'])
@@ -63,39 +70,24 @@ def logout():
 @app.route("/account", methods=['GET', 'POST'])
 @login_required
 def account():
-    regionList = []
-    regions_id = User_Region.query.filter_by(user_id=current_user.id).all()
-    for r_id in regions_id:
-        id = r_id.region_id
-        r = Region.query.filter_by(id=id).first()
-        regionList.append(r.name)
+    my_login_handler = LoginDbHandler(None)
+    if current_user.messages_recieved:
+        my_login_handler.show_messages()
+    region_list = my_login_handler.get_user_region_list()
 
     if request.method == 'POST':
-        action = request.form.get("Aktion")
-        region = request.form.get("Region")
+        action, region = request.form.get("Aktion"), request.form.get("Region")
         if not region:
-            flash('Füllen Sie bitte Feld "Region auswählen" aus!', 'info')
+            flash('Füllen Sie bitte das Feld "Region auswählen" aus!', 'info')
             return redirect(url_for('account'))
         if not action:
-            flash('Füllen Sie bitte Feld "Aktion auswählen" aus!', 'info')
+            flash('Füllen Sie bitte das Feld "Aktion auswählen" aus!', 'info')
             return redirect(url_for('account'))
-        region_manage = Region.query.filter_by(name=region).first()
+        my_login_handler = LoginDbHandler(region)
 
         if action == "Entfernen":
-            if region_manage.admin_id == current_user.id:
-                # Wenn kein anderer User Region hat:
-                if len(region_manage.users) == 1:
-                    flash(f'"{region}" ist jetzt Adminlos!', 'info')
-                    region_manage.admin_id = None
-                else:
-                    flash(f'Geben Sie vorher den Admin der Region "{region}" ab!', 'warning')
-                    return redirect(url_for('account'))
-            delete = User_Region.query.filter_by(user_id=current_user.id).filter_by(region_id=region_manage.id).first()
-            login_db.session.delete(delete)
-            flash(f'"{region}" gelöscht!', 'success')
-            login_db.session.commit()
-            regionList.remove(region)
-
+            my_login_handler.delete_region_association()
+            region_list.remove(region)
         elif action == "Freigeben" or action == "Admin abgeben":
             user = request.form.get("User")
             if not user:
@@ -107,593 +99,413 @@ def account():
             if not user_manage:
                 flash(f'User/Email "{user}" nicht gefunden!', 'warning')
                 return redirect(url_for('account'))
-
-
             if action == "Freigeben":
-                if User_Region.query.filter_by(user_id=user_manage.id).filter_by(region_id=region_manage.id).first():
-                    flash(f'User "{user}" hat Region bereits!', 'warning')
-                    return redirect(url_for('account'))
-                region_manage.users.append(User_Region(user=user_manage, provided_by_id=current_user.id))
-                flash(f'"{region}" freigegeben für {user}!', 'success')
+                my_login_handler.share_region(user_manage)
             if action == "Admin abgeben":
-                if not region_manage.admin_id == current_user.id:
-                    flash(f'Sie sind kein Admin der Region "{region}"!', 'warning')
-                    return redirect(url_for('account'))
-                region_manage.admin_id = user_manage.id
-                flash(f'Admin von "{region}" abgegeben an "{user}"!', 'success')
-            login_db.session.commit()
+                my_login_handler.hand_over_region(user_manage)
             return redirect(url_for('account'))
-    return render_template("routes/account.html", regions=regionList)
+    return render_template("routes/account.html", regions=region_list)
 
 
 def send_reset_email(user):
     token = user.get_reset_token()
-    msg = Message('Password Reset Request',sender='noreply@akut.com', recipients=[user.email])
-    msg.body = f'''To reset your password, visit the following link:
+    message = Message('Password Reset Request', sender='noreply@akut.com', recipients=[user.email])
+    message.body = f'''To reset your password, visit the following link:
 {url_for('reset_token', token=token, _external=True)}
 Wenn Sie keine Anfrage gesendet haben, können Sie diese Mail ignorieren.'''
-    mail.send(msg)
+    mail.send(message)
 
 
 @app.route("/reset_password", methods=['GET', 'POST'])
 def reset_request():
     if current_user.is_authenticated:
-        return redirect(url_for('home'))
+        return redirect(url_for('landing_page'))
     form = RequestResetForm()
-    user = User.query.filter_by(email=form.email.data).first()
+    email = form.email.data
+    user = User.query.filter_by(email=email).first()
     if form.validate_on_submit():
         if user:
             send_reset_email(user)
-        flash(f'Wenn für "{form.email.data}" ein Account existiert,wurde eine E-Mail zum Zurücksetzen des Passworts gesendet.','info')
+        flash(
+            f'Wenn für "{email}" ein Account existiert,wurde eine E-Mail zum Zurücksetzen des Passworts gesendet.',
+            'info')
         return redirect(url_for('login'))
-    return render_template('reset_request.html', form=form)
+    return render_template('routes/reset_request.html', form=form)
 
 
 @app.route("/reset_password/<token>", methods=['GET', 'POST'])
 def reset_token(token):
     if current_user.is_authenticated:
-        return redirect(url_for('home'))
+        return redirect(url_for('landing_page'))
     user = User.verify_reset_token(token)
     if user is None:
         flash('That is an invalid or expired token', 'warning')
         return redirect(url_for('reset_request'))
     form = ResetPasswordForm()
     if form.validate_on_submit():
-        hashed_password = bcrypt.generate_password_hash(form.password.data).decode('utf-8')
-        user.password = hashed_password
-        login_db.session.commit()
-        flash('Passwort aktualisiert!', 'success')
+        my_login_handler = LoginDbHandler(None)
+        my_login_handler.change_pw(form.password.data)
         return redirect(url_for('login'))
-    return render_template('reset_token.html', title='Reset Password', form=form)
+    return render_template('routes/reset_token.html', title='Reset Password', form=form)
+
+
+# --------------------------------
+# ---------- ADMINPANEL ----------
+# --------------------------------
+def check_for_admin_user():
+    admin_user = User.query.filter_by(username='admin').first()
+    if not current_user == admin_user:
+        abort(403)
+
+
+@app.route("/adminpanel", methods=['GET', 'POST'])
+@login_required
+def panel():
+    check_for_admin_user()
+    my_login_db_handler = LoginDbHandler(None)
+    all_regions_dict = my_login_db_handler.get_all_information(Region, 'name')
+    all_users_dict = my_login_db_handler.get_all_information(User, 'username')
+    return render_template("routes/adminpanel.html", region_info=all_regions_dict, user_info=all_users_dict)
+
+
+@app.route("/adminpanel/edit_region/<int:regionid>", methods=['GET', 'POST'])
+@login_required
+def panel_edit_region(regionid):
+    check_for_admin_user()
+    my_login_db_handler = LoginDbHandler(None)
+    region_info_dict = my_login_db_handler.get_information_for_admin_edit(Region, regionid)
+    return render_template("routes/adminpanel_edit_region.html", region_info=region_info_dict)
+
+
+@app.route("/adminpanel/update_region", methods=['GET', 'POST'])
+@login_required
+def panel_update_region():
+    check_for_admin_user()
+    returned_data_dict, returned_keys = dict(), ["name", "region_id", "change_admin", "remove_user[]", "insert_user[]"]
+    for key in returned_keys:
+        if "[]" in key:
+            returned_data_dict[key] = request.form.getlist(key)
+        else:
+            returned_data_dict[key] = request.form.get(key)
+    my_login_handler = LoginDbHandler(None)
+    valid = my_login_handler.update_region(returned_data_dict)
+    if valid:
+        return redirect(url_for('panel'))
+    else:
+        return redirect(url_for('panel_edit_region', regionid=returned_data_dict["region_id"]))
+
+
+@app.route("/adminpanel/delete_region/<int:regionid>", methods=['GET', 'POST'])
+@login_required
+def panel_delete_region(regionid):
+    check_for_admin_user()
+    my_login_handler = LoginDbHandler(Region.query.filter_by(id=regionid).first().name)
+    my_login_handler.delete_region()
+    return redirect(url_for('panel'))
+
+
+@app.route("/adminpanel/edit_user/<int:userid>", methods=['GET', 'POST'])
+@login_required
+def panel_edit_user(userid):
+    check_for_admin_user()
+    my_login_db_handler = LoginDbHandler(None)
+    user_info_dict = my_login_db_handler.get_information_for_admin_edit(User, userid)
+    return render_template("routes/adminpanel_edit_user.html", user_info=user_info_dict)
+
+
+@app.route("/adminpanel/update_user", methods=['GET', 'POST'])
+@login_required
+def panel_update_user():
+    check_for_admin_user()
+    returned_data_dict, returned_keys = dict(), ["name", "user_id", "remove_region[]", "insert_region[]"]
+    for key in returned_keys:
+        if "[]" in key:
+            returned_data_dict[key] = request.form.getlist(key)
+        else:
+            returned_data_dict[key] = request.form.get(key)
+    my_login_handler = LoginDbHandler(None)
+    valid = my_login_handler.update_user(returned_data_dict)
+    if valid:
+        return redirect(url_for('panel'))
+    else:
+        return redirect(url_for('panel_edit_user', userid=returned_data_dict["user_id"]))
+
+
+@app.route("/adminpanel/delete_user/<int:userid>", methods=['GET', 'POST'])
+@login_required
+def panel_delete_user(userid):
+    check_for_admin_user()
+    my_login_handler = LoginDbHandler(None)
+    my_login_handler.delete_user(userid)
+    return redirect(url_for('panel'))
+
+
+# --------------------------------------
+# ---------- UPLOADS/KOPIEREN ----------
+# --------------------------------------
+def check_upload():
+    if request.method == 'POST':
+        if "file" not in request.files:
+            return None
+        file = request.files["file"]
+        region_name_upload = request.form.get("region")
+        if file.filename == "":
+            flash('Bitte Datei auswählen!', 'info')
+            return None
+        if '.' in file.filename and file.filename.rsplit('.', 1)[1].lower() in extensions:
+            filename = secure_filename(file.filename)
+        else:
+            flash('Ungültige Datei!', 'info')
+            return None
+        if region_name_upload == '':
+            flash('Bitte Regionname angeben!', 'info')
+            return None
+        my_db_handler = LoginDbHandler(None)
+        regions_in_db = my_db_handler.get_all_region_names()
+        for region in regions_in_db:
+            ratio = SequenceMatcher(a=region_name_upload, b=region).ratio()
+            if ratio >= 0.75:
+                pass  # TODO
+        return [file, filename, region_name_upload]
+
+
+@app.route("/uploadEinzugsgebiete", methods=['GET', 'POST'])
+@login_required
+def upload_einzugsgebiete():  # Modellgrenzen
+    if request.method == 'POST':
+        uploaded_data = check_upload()
+        if uploaded_data is None:
+            return redirect(request.url)
+        uploaded_data[0].save(os.path.join(folder, uploaded_data[1]))
+        my_database_handler = LoginDbHandler(uploaded_data[2])
+        my_database_handler.write_uploaded_einzugsgebiete_to_database(folder, uploaded_data[1])
+    return render_template("routes/uploadEinzugsgebiete.html")
+
 
 @app.route("/upload", methods=['GET', 'POST'])
 @login_required
-def upload():
+def upload():  # DGM
     if request.method == 'POST':
-        if "file" not in request.files:
+        uploaded_data = check_upload()
+        if uploaded_data is None:
             return redirect(request.url)
-        file = request.files["file"]
-        if file.filename == "":
+        if request.form.get("reuseFile") is None:
+            uploaded_data[0].save(os.path.join(folder, uploaded_data[1]))
+
+        my_database_handler = LoginDbHandler(uploaded_data[2])
+        if not uploaded_data[1].rsplit('.', 1)[1].lower() == "txt":
+            flash(f'Bitte als Dateityp .txt wählen!', 'info')
             return redirect(request.url)
-        if allowed(file.filename):
-            filename = secure_filename(file.filename)
-        else:
-            return redirect(request.url)
-        myDatabaseHandler = databaseHandler(request.form.get("region"), "database.db")
-        if (request.form.get("reuseFile") is None):
-            file.save(os.path.join(folder, filename))
-        # myDatabaseHandler.writeUploadedDataToDatabase(folder, filename, float(request.form.get("gridSize")))
-        myDatabaseHandler.writeUploadedDataToDGM1(folder, filename, 1,
-                                                  request.form.get("reuseFile"))
-        myDatabaseHandler.initialize_optimization_parameters("init")
-        print("data written to DB successfully")
+        my_database_handler.write_uploaded_data_to_dgm1(folder, uploaded_data[1])  # , request.form.get("reuseFile")
     return render_template("routes/upload.html")
 
 
-@app.route("/delete", methods=['GET', 'POST'])
+@app.route("/uploadKatasterAsXml", methods=['GET', 'POST'])
 @login_required
-def delete():
-    if request.method == "POST":
-        myDatabaseHandler = databaseHandler(request.form.get("region"), "database.db")
-        myDatabaseHandler.deleteRegion()
-    return render_template("routes/delete.html")
-
-
-@app.route("/deleteWholeData", methods=['GET', 'POST'])
-@login_required
-def deleteWholeData():
-    if request.method == "POST":
-        myDatabaseHandler = databaseHandler("dummyRegion", "database.db")
-        myDatabaseHandler.deleteWholeData()
-    return render_template("routes/deleteWholeData.html")
-
-
-@app.route("/uploadBuildings", methods=['GET', 'POST'])
-@login_required
-def uploadBuildings():
+def upload_kataster_as_xml():  # ALKIS/XML
     if request.method == 'POST':
-        if "file" not in request.files:
+        uploaded_data = check_upload()
+        if uploaded_data is None:
             return redirect(request.url)
-        file = request.files["file"]
-        if file.filename == "":
-            return redirect(request.url)
-        if allowed(file.filename):
-            filename = secure_filename(file.filename)
+        uploaded_data[0].save(os.path.join(folder, uploaded_data[1]))
+
+        my_login_db_handler = LoginDbHandler(request.form.get("region"))
+        if uploaded_data[1].rsplit('.', 1)[1].lower() in ["xml", "zip"]:
+            my_login_db_handler.write_uploaded_kataster_as_xml_to_database(folder, uploaded_data[1])
+        elif uploaded_data[1].rsplit('.', 1)[1].lower() == "shp":
+            my_login_db_handler.write_uploaded_kataster_as_shp_to_database(folder, uploaded_data[1])
         else:
+            flash(f'Bitte als Dateityp .xml, .zip oder .shp wählen!', 'info')
             return redirect(request.url)
-        myDatabaseHandler = databaseHandler(request.form.get("region"), "database.db")
-        myDatabaseHandler.initializeTablesInDatabase()
-        file.save(os.path.join(folder, filename))
-        myDatabaseHandler.writeUploadedBuildingsToDatabase(folder, filename)
-    return render_template("routes/uploadBuildings.html")
+    return render_template("routes/uploadKatasterAsXml.html")
 
 
-@app.route("/modifyGraph")
+@app.route("/copyRegion")
 @login_required
-def modifyGraph():
-    myDatabaseHandler = databaseHandler(request.form.get("region"), "database.db")
-    headers = myDatabaseHandler.readFullHeaderTable()
-    handledHeaders = []
-    for header in headers:
-        newHeader = header + ("buttonDisplay_" + header[0], "buttonDraw_" + header[0])
-        handledHeaders.append(newHeader)
-    return render_template("routes/modifyGraph.html", headers=handledHeaders)
+def copy_region():
+    return render_template("routes/copyRegion.html")
 
 
-@app.route("/modifyGraphDraw_process", methods=["POST"])
+@app.route("/copyRegion_process", methods=['GET', 'POST'])
 @login_required
-def modifyGraphDrawProcess():
+def copy_region_process():
     if request.method == "POST":
-        buttonPressed = request.form.get("dataset")
-        if buttonPressed is not None:
-            region = buttonPressed[buttonPressed.startswith("buttonDraw_") and len("buttonDraw_"):]
-            myDatabaseHandler = databaseHandler(region, "database.db")
-            header = myDatabaseHandler.readRegionHeader()
-            jsonToReturnToFrontend = dict()
-            jsonToReturnToFrontend["region"] = region
-            jsonToReturnToFrontend["Auffangbecken"] = myDatabaseHandler.readAuffangbecken()
-            jsonToReturnToFrontend["Leitgraeben"] = myDatabaseHandler.read_leitgraeben()
-            jsonToReturnToFrontend["center_lat"] = header[9]
-            jsonToReturnToFrontend["center_lon"] = header[10]
-            return jsonify(jsonToReturnToFrontend)
+        dataset = json.loads(request.form.get("dataset"))
+        region = Region.query.filter_by(name=dataset["from"]).first()
+        if region and not (dataset["from"] == dataset["to"]):
+            my_database_handler = LoginDbHandler(dataset["from"])
+            my_database_handler.copy_region_to(dataset["to"])
+            return jsonify(
+                {'success': 'Die Daten wurden erfolgreich in die Datenbank kopiert am ' + str(datetime.datetime.now())})
     return jsonify({'error': 'Something Went Wrong!'})
 
 
-@app.route("/modifyGraphSaveToDatabase_process", methods=["POST"])
+# -----------------------------------
+# ---------- EINGANGSDATEN ----------
+# -----------------------------------
+@app.route("/modifyHeaderData")
 @login_required
-def modifyGraphSaveToDatabaseProcess():
+def modify_header_data():
+    my_database_handler = LoginDbHandler(None)
+    headers = my_database_handler.read_user_header_table()
+    json_to_return_to_frontend = {}
+    for header in headers:
+        json_to_return_to_frontend[header] = {"amount": headers[header]["rainAmount"],
+                                              "duration": headers[header]["rainDuration"]}
+    return render_template("routes/modifyHeaderData.html", headers=headers,
+                           headersAsJson=json_to_return_to_frontend)
+
+
+@app.route("/modifyHeaderDataSaveToDatabase_process", methods=["POST"])
+@login_required
+def modify_header_data_save_to_database_process():
     if request.method == "POST":
-        returnedData = json.loads(request.form.get("dataset"))
-        if returnedData is not None:
-            region = returnedData["region"]
-            myDatabaseHandler = databaseHandler(region, "database.db")
-            myDatabaseHandler.updateAuffangbeckenFromFrontend(returnedData["Auffangbecken"])
-            myDatabaseHandler.updateLeitgraebenFromFrontend(returnedData["Leitgraeben"])
-            jsonToReturnToFrontend = jsonify({
-                                                 'success': 'Die Daten wurden erfolgreich in die Datenbank geschrieben. Ende des Prozesses: ' + str(
-                                                     datetime.datetime.now())})
-            return jsonToReturnToFrontend
+        returned_data = json.loads(request.form.get("dataset"))
+        if returned_data is not None:
+            my_database_handler = LoginDbHandler(None)
+            my_database_handler.update_header_data_from_frontend(returned_data)
+            json_to_return_to_frontend = jsonify({
+                'success': 'Die Daten wurden erfolgreich in die Datenbank geschrieben. Ende des Prozesses: ' + str(
+                    datetime.datetime.now())})
+            return json_to_return_to_frontend
     return jsonify({'error': 'Something Went Wrong!'})
 
 
 @app.route("/modifyBuildings")
 @login_required
-def modifyBuildings():
-    myDatabaseHandler = databaseHandler(request.form.get("region"), "database.db")
-    headers = myDatabaseHandler.readFullHeaderTable()
-    handledHeaders = []
-    for header in headers:
-        newHeader = header + ("buttonDraw_" + header[0],)
-        handledHeaders.append(newHeader)
-    return render_template("routes/modifyBuildings.html", headers=handledHeaders)
+def modify_buildings():
+    my_database_handler = LoginDbHandler(request.form.get("region"))
+    regions = my_database_handler.get_user_regions()
+    return render_template("routes/modifyBuildings.html", regions=regions)
 
 
 @app.route("/modifyBuildingsDraw_process", methods=["GET", "POST"])
 @login_required
-def modifyBuildingsDrawProcess():
+def modify_buildings_draw_process():
     if request.method == "POST":
-        buttonPressed = request.form.get("dataset")
-        if buttonPressed is not None:
-            region = buttonPressed[buttonPressed.startswith("buttonDraw_") and len("buttonDraw_"):]
-            myDatabaseHandler = databaseHandler(region, "database.db")
-            header = myDatabaseHandler.readRegionHeader()
-            jsonToReturnToFrontend = dict()
-            jsonToReturnToFrontend["region"] = region
-            jsonToReturnToFrontend["Buildings"] = myDatabaseHandler.readBuildingsForDisplay()
-            jsonToReturnToFrontend["center_lat"] = header[9]
-            jsonToReturnToFrontend["center_lon"] = header[10]
-            return jsonify(jsonToReturnToFrontend)
+        region_id = request.form.get("dataset")
+        if region_id is not None:
+            regionname = Region.query.filter_by(id=region_id).first().name
+            my_database_handler = LoginDbHandler(regionname)
+            header = my_database_handler.read_region_header()
+            json_to_return_to_frontend = dict()
+            json_to_return_to_frontend["region"] = regionname
+            json_to_return_to_frontend["Buildings"] = my_database_handler.read_buildings_for_display()
+            json_to_return_to_frontend["center_lat"] = header["center_lat"]
+            json_to_return_to_frontend["center_lon"] = header["center_lon"]
+            return jsonify(json_to_return_to_frontend)
     return jsonify({'error': 'Something Went Wrong!'})
 
 
 @app.route("/modifyBuildingsSaveToDatabase_process", methods=["POST"])
 @login_required
-def modifyBuildingsSaveToDatabaseProcess():
+def modify_buildings_save_to_database_process():
     if request.method == "POST":
-        returnedData = json.loads(request.form.get("dataset"))
-        if returnedData is not None:
-            region = returnedData["region"]
-            myDatabaseHandler = databaseHandler(region, "database.db")
-            myDatabaseHandler.updateBuildingsFromFrontend(returnedData["Buildings"])
-            jsonToReturnToFrontend = jsonify({
-                                                 'success': 'Die Daten wurden erfolgreich in die Datenbank geschrieben. Ende des Prozesses: ' + str(
-                                                     datetime.datetime.now())})
-            return jsonToReturnToFrontend
+        returned_data = json.loads(request.form.get("dataset"))
+        if returned_data is not None:
+            region = returned_data["region"]
+            my_database_handler = LoginDbHandler(region)
+            my_database_handler.update_buildings_from_frontend(returned_data["Buildings"])
+            json_to_return_to_frontend = jsonify({
+                'success': 'Die Daten wurden erfolgreich in die Datenbank geschrieben. Ende des Prozesses: ' + str(
+                    datetime.datetime.now())})
+            return json_to_return_to_frontend
     return jsonify({'error': 'Something Went Wrong!'})
 
 
-@app.route("/uploadKataster", methods=['GET', 'POST'])
-@login_required
-def uploadKataster():
-    if request.method == 'POST':
-        if "file" not in request.files:
-            return redirect(request.url)
-        file = request.files["file"]
-        if file.filename == "":
-            return redirect(request.url)
-        if allowed(file.filename):
-            filename = secure_filename(file.filename)
-        else:
-            return redirect(request.url)
-        myDatabaseHandler = databaseHandler(request.form.get("region"), "database.db")
-        file.save(os.path.join(folder, filename))
-        myDatabaseHandler.writeUploadedKatasterToDatabase(folder, filename)
-    return render_template("routes/uploadKataster.html")
-
-
-@app.route("/uploadKatasterAsXml", methods=['GET', 'POST'])
-@login_required
-def uploadKatasterAsXml():
-    if request.method == 'POST':
-        if "file" not in request.files:
-            return redirect(request.url)
-        file = request.files["file"]
-        if file.filename == "":
-            return redirect(request.url)
-        if allowed(file.filename):
-            filename = secure_filename(file.filename)
-        else:
-            return redirect(request.url)
-        myDatabaseHandler = databaseHandler(request.form.get("region"), "database.db")
-        file.save(os.path.join(folder, filename))
-        if filename.rsplit('.', 1)[1].lower() in ["xml", "zip"]:
-            myDatabaseHandler.writeUploadedKatasterAsXmlToDatabase(folder, filename)
-        elif filename.rsplit('.', 1)[1].lower() == "shp":
-            myDatabaseHandler.writeUploadedKatasterAsShpToDatabase(folder, filename)
-    return render_template("routes/uploadKatasterAsXml.html")
-
-
-@app.route("/uploadEinzugsgebiete", methods=['GET', 'POST'])
-@login_required
-def uploadEinzugsgebiete():
-    if request.method == 'POST':
-        if "file" not in request.files:
-            return redirect(request.url)
-        file = request.files["file"]
-        if file.filename == "":
-            return redirect(request.url)
-        if allowed(file.filename):
-            filename = secure_filename(file.filename)
-        else:
-            return redirect(request.url)
-        region_upload = request.form.get("region")
-        myDatabaseHandler = databaseHandler(region_upload, "database.db")
-        file.save(os.path.join(folder, filename))
-        myDatabaseHandler.writeUploadedEinzugsgebieteToDatabase(folder, filename)
-
-        # Neue Regionen hochladen
-        region_current = Region.query.filter_by(name=region_upload).first()
-        if not region_current:
-            region_new = Region(name=region_upload, admin_id=current_user.id)
-            login_db.session.add(region_new)
-            region_current = Region.query.filter_by(name=region_upload).first()
-            admin_user = User.query.filter_by(username='admin').first()
-            region_current.users.append(User_Region(user=admin_user))
-            login_db.session.commit()
-
-        # User hinzufuegen
-        association_exists = User_Region.query.filter_by(user_id=current_user.id).filter_by(region_id=region_current.id).first()
-        if not association_exists:
-            region_current.users.append(User_Region(user=current_user))
-            login_db.session.commit()
-            # Falls Adminlose Region:
-            if region_current.admin_id == None:
-                region_current.admin_id = current_user.id
-
-    return render_template("routes/uploadEinzugsgebiete.html")
-
-
+# ----------------------------------
+# ---------- MODELLIERUNG ----------
+# ----------------------------------
 @app.route("/showKataster")
 @login_required
-def showKataster():
-    myDatabaseHandler = databaseHandler(request.form.get("region"), "database.db")
-    headers = myDatabaseHandler.readFullHeaderTable()
-    handledHeaders = []
-    for header in headers:
-        newHeader = header + ("buttonDisplay_" + header[0],)
-        handledHeaders.append(newHeader)
-    return render_template("routes/showKataster.html", headers=handledHeaders)
-
-
-@app.route("/modifyKatasterSaveToDatabase_process", methods=["POST"])
-@login_required
-def modifyKatasterSaveToDatabaseProcess():
-    if request.method == "POST":
-        returnedData = json.loads(request.form.get("dataset"))
-        if returnedData is not None:
-            region = returnedData["region"]
-            myDatabaseHandler = databaseHandler(region, "database.db")
-            myDatabaseHandler.updateKatasterFromFrontend(returnedData["Kataster"])
-            jsonToReturnToFrontend = jsonify({
-                                                 'success': 'Die Daten wurden erfolgreich in die Datenbank geschrieben. Ende des Prozesses: ' + str(
-                                                     datetime.datetime.now())})
-            return jsonToReturnToFrontend
-    return jsonify({'error': 'Something Went Wrong!'})
+def show_kataster():
+    my_database_handler = LoginDbHandler(request.form.get("region"))
+    headers = my_database_handler.read_user_header_table()
+    return render_template("routes/showKataster.html", headers=headers)
 
 
 @app.route("/showKatasterDisplay_process", methods=["POST"])
 @login_required
-def showKatasterDisplayProcess():
+def show_kataster_display_process():
     if request.method == "POST":
-        buttonPressed = request.form.get("dataset")
-        if buttonPressed is not None:
-            region = buttonPressed[buttonPressed.startswith("buttonDisplay_") and len("buttonDisplay_"):]
-            myDatabaseHandler = databaseHandler(region, "database.db")
-            jsonToReturnToFrontend = myDatabaseHandler.readEinzugsgebieteForDisplay()
-            myKataster = myDatabaseHandler.readKatasterForDisplay()
-            header = myDatabaseHandler.readRegionHeader()
-            jsonToReturnToFrontend["Kataster"] = myKataster["Kataster"]
-            jsonToReturnToFrontend["center_lat"] = header[9]
-            jsonToReturnToFrontend["center_lon"] = header[10]
-            return jsonify(jsonToReturnToFrontend)
+        region_name = request.form.get("dataset")
+        if region_name is not None:
+            my_database_handler = LoginDbHandler(region_name)
+            json_to_return_to_frontend = my_database_handler.read_einzugsgebiete_for_display()
+            my_kataster = my_database_handler.read_kataster_for_display()
+            header = my_database_handler.read_region_header()
+            json_to_return_to_frontend["Kataster"] = my_kataster["Kataster"]
+            json_to_return_to_frontend["center_lat"] = header["center_lat"]
+            json_to_return_to_frontend["center_lon"] = header["center_lon"]
+            return jsonify(json_to_return_to_frontend)
     return jsonify({'error': 'Something Went Wrong!'})
 
 
-@app.route("/showGrid")
+@app.route("/modifyKatasterSaveToDatabase_process", methods=["POST"])
 @login_required
-def showGrid():
-    myDatabaseHandler = databaseHandler(request.form.get("region"), "database.db")
-    headers = myDatabaseHandler.readFullHeaderTable()
-    handledHeaders = []
-    for header in headers:
-        newHeader = header + ("buttonDisplay_" + header[0],)
-        handledHeaders.append(newHeader)
-    return render_template("routes/showGrid.html", headers=handledHeaders)
-
-
-@app.route("/showGridDisplay_process", methods=["POST"])
-@login_required
-def showGridDisplayProcess():
+def modify_kataster_save_to_database_process():
     if request.method == "POST":
-        buttonPressed = request.form.get("dataset")
-        if buttonPressed is not None:
-            region = buttonPressed[buttonPressed.startswith("buttonDisplay_") and len("buttonDisplay_"):]
-            myDatabaseHandler = databaseHandler(region, "database.db")
-            jsonToReturnToFrontend = myDatabaseHandler.readEinzugsgebieteForDisplay()
-            myGrid = myDatabaseHandler.readGridForDisplay()
-            header = myDatabaseHandler.readRegionHeader()
-            jsonToReturnToFrontend["Grid"] = myGrid["Grid"]
-            jsonToReturnToFrontend["Relevant"] = myGrid["Relevant"]
-            jsonToReturnToFrontend["MitMassnahme"] = myGrid["MitMassnahme"]
-            jsonToReturnToFrontend["connectedToRelevantNode"] = myGrid["connectedToRelevantNode"]
-            jsonToReturnToFrontend["center_lat"] = header[9]
-            jsonToReturnToFrontend["center_lon"] = header[10]
-            return jsonify(jsonToReturnToFrontend)
+        returned_data = json.loads(request.form.get("dataset"))
+        if returned_data is not None:
+            region = returned_data["region"]
+            my_database_handler = LoginDbHandler(region)
+            my_database_handler.update_kataster_from_frontend(returned_data["Kataster"])
+            json_to_return_to_frontend = jsonify({
+                'success': 'Die Daten wurden erfolgreich in die Datenbank geschrieben. Ende des Prozesses: ' + str(
+                    datetime.datetime.now())})
+            return json_to_return_to_frontend
     return jsonify({'error': 'Something Went Wrong!'})
 
 
-@app.route("/computeMitMassnahme")
+@app.route("/modifyGraph")
 @login_required
-def computeMitMassnahme():
-    myDatabaseHandler = databaseHandler("anyRegion", "database.db")
-    headers = myDatabaseHandler.readFullHeaderTable()
-    handledHeaders = []
-    for header in headers:
-        newHeader = header + ("buttonBerechnen_" + header[0],)
-        handledHeaders.append(newHeader)
-    return render_template("routes/computeMitMassnahme.html", headers=handledHeaders)
+def modify_graph():
+    my_database_handler = LoginDbHandler(None)
+    headers = my_database_handler.read_user_header_table()
+    return render_template("routes/modifyGraph.html", headers=headers)
 
 
-@app.route('/computeMitMassnahme_process', methods=['GET', 'POST'])
+@app.route("/modifyGraphDraw_process", methods=["POST"])
 @login_required
-def computeMitMassnahmeProcess():
+def modify_graph_draw_process():
     if request.method == "POST":
-        buttonPressed = request.form.get("dataset")
-        region = buttonPressed[buttonPressed.startswith("buttonBerechnen_") and len("buttonBerechnen_"):]
-        if buttonPressed is not None:
-            myDatabaseHandler = databaseHandler(region, "database.db")
-            myDatabaseHandler.updateMitMassnahme()
-
-            return jsonify({'dataset': buttonPressed[buttonPressed.startswith("buttonBerechnen_") and len(
-                "buttonBerechnen_"):] + " wurde erfolgreich berechnet."})
+        region_name = request.form.get("dataset")
+        if region_name is not None:
+            my_database_handler = LoginDbHandler(region_name)
+            header = my_database_handler.read_region_header()
+            json_to_return_to_frontend = dict()
+            json_to_return_to_frontend["region"] = region_name
+            json_to_return_to_frontend["Auffangbecken"] = my_database_handler.read_auffangbecken()
+            json_to_return_to_frontend["Leitgraeben"] = my_database_handler.read_leitgraeben()
+            json_to_return_to_frontend["center_lat"] = header["center_lat"]
+            json_to_return_to_frontend["center_lon"] = header["center_lon"]
+            return jsonify(json_to_return_to_frontend)
     return jsonify({'error': 'Something Went Wrong!'})
 
 
-@app.route("/computeGraphOfRelevantNodes")
+@app.route("/modifyGraphSaveToDatabase_process", methods=["POST"])
 @login_required
-def computeGraphOfRelevantNodes():
-    myDatabaseHandler = databaseHandler("anyRegion", "database.db")
-    headers = myDatabaseHandler.readFullHeaderTable()
-    handledHeaders = []
-    for header in headers:
-        newHeader = header + ("buttonBerechnen_" + header[0],)
-        handledHeaders.append(newHeader)
-    return render_template("routes/computeGraphOfRelevantNodes.html", headers=handledHeaders)
-
-
-@app.route('/computeGraphOfRelevantNodes_process', methods=['GET', 'POST'])
-@login_required
-def computeGraphOfRelevantNodesProcess():
+def modify_graph_save_to_database_process():
     if request.method == "POST":
-        buttonPressed = request.form.get("dataset")
-        region = buttonPressed[buttonPressed.startswith("buttonBerechnen_") and len("buttonBerechnen_"):]
-        if buttonPressed is not None:
-            myDatabaseHandler = databaseHandler(region, "database.db")
-            myDatabaseHandler.updateRelevant()
-
-            return jsonify({'dataset': buttonPressed[buttonPressed.startswith("buttonBerechnen_") and len(
-                "buttonBerechnen_"):] + " wurde erfolgreich berechnet."})
-    return jsonify({'error': 'Something Went Wrong!'})
-
-
-@app.route("/showGridSaveToDatabase_process", methods=["POST"])
-@login_required
-def showGridSaveToDatabaseProcess():
-    if request.method == "POST":
-        returnedData = json.loads(request.form.get("dataset"))
-        if returnedData is not None:
-            region = returnedData["region"]
-            myDatabaseHandler = databaseHandler(region, "database.db")
-            myDatabaseHandler.updateRelevantFromFrontend(returnedData)
-            jsonToReturnToFrontend = jsonify({
-                                                 'success': 'Die Daten wurden erfolgreich in die Datenbank geschrieben. Ende des Prozesses: ' + str(
-                                                     datetime.datetime.now())})
-            return jsonToReturnToFrontend
-    return jsonify({'error': 'Something Went Wrong!'})
-
-
-@app.route("/computeOptimalSolution")
-@login_required
-def computeOptimalSolution():
-    myDatabaseHandler = databaseHandler("anyRegion", "database.db")
-    headers = myDatabaseHandler.readFullHeaderTable()
-    handledHeaders = []
-    for header in headers:
-        newHeader = header + ("buttonBerechnen_" + header[0],)
-        handledHeaders.append(newHeader)
-    return render_template("routes/computeOptimalSolution.html", headers=handledHeaders)
-
-
-@app.route('/computeOptimalSolution_process', methods=['GET', 'POST'])
-@login_required
-def computeOptimalSolutionProcess():
-    if request.method == "POST":
-        buttonPressed = request.form.get("dataset")
-        region = buttonPressed[buttonPressed.startswith("buttonBerechnen_") and len("buttonBerechnen_"):]
-        if buttonPressed is not None:
-            myDatabaseHandler = databaseHandler(region, "database.db")
-            myDatabaseHandler.computeOptimalSolution()
-
-            return jsonify({'dataset': buttonPressed[buttonPressed.startswith("buttonBerechnen_") and len(
-                "buttonBerechnen_"):] + " wurde erfolgreich berechnet."})
-    return jsonify({'error': 'Something Went Wrong!'})
-
-
-@app.route("/showOptimalSolution")
-@login_required
-def showOptimalSolution():
-    myDatabaseHandler = databaseHandler(request.form.get("region"), "database.db")
-    headers = myDatabaseHandler.readFullHeaderTable()
-    handledHeadersSolved = []
-    for header in headers:
-        if header[3] == 1:
-            newHeader = header + ("buttonDisplay_" + header[0],)
-            handledHeadersSolved.append(newHeader)
-    return render_template("routes/showOptimalSolution.html", headers=handledHeadersSolved)
-
-
-@app.route('/showOptimalSolutionDisplay_process', methods=['GET', 'POST'])
-@login_required
-def showOptimalSolutionDisplayProcess():
-    if request.method == "POST":
-        buttonPressed = request.form.get("dataset")
-        region = buttonPressed[buttonPressed.startswith("buttonDisplay_") and len("buttonDisplay_"):]
-        if buttonPressed is not None:
-            myDatabaseHandler = databaseHandler(region, "database.db")
-            mySolution = myDatabaseHandler.readOptimalSolution()
-            jsonToReturnToFrontend = myDatabaseHandler.readEinzugsgebieteForDisplay()
-            myGrid = myDatabaseHandler.readGridForDisplay()
-            header = myDatabaseHandler.readRegionHeader()
-            jsonToReturnToFrontend["Grid"] = myGrid["Grid"]
-            jsonToReturnToFrontend["Relevant"] = myGrid["Relevant"]
-            jsonToReturnToFrontend["MitMassnahme"] = myGrid["MitMassnahme"]
-            jsonToReturnToFrontend["connectedToRelevantNode"] = myGrid["connectedToRelevantNode"]
-            jsonToReturnToFrontend["GeodesicHeight"] = myGrid["GeodesicHeight"]
-            jsonToReturnToFrontend["Flooded"] = mySolution["Flooded"]
-            jsonToReturnToFrontend["waterHeight"] = mySolution["waterHeight"]
-            jsonToReturnToFrontend["center_lat"] = header[9]
-            jsonToReturnToFrontend["center_lon"] = header[10]
-            return jsonify(jsonToReturnToFrontend)
-    return jsonify({'error': 'Something Went Wrong!'})
-
-
-@app.route("/showHandlungsbedarf")
-@login_required
-def showHandlungsbedarf():
-    myDatabaseHandler = databaseHandler(request.form.get("region"), "database.db")
-    headers = myDatabaseHandler.readFullHeaderTable()
-    handledHeadersSolved = []
-    for header in headers:
-        if header[3] == 1:
-            newHeader = header + ("buttonDisplay_" + header[0],)
-            handledHeadersSolved.append(newHeader)
-    return render_template("routes/showHandlungsbedarf.html", headers=handledHeadersSolved)
-
-
-@app.route('/showHandlungsbedarfDisplay_process', methods=['GET', 'POST'])
-@login_required
-def showHandlungsbedarfDisplayProcess():
-    if request.method == "POST":
-        buttonPressed = request.form.get("dataset")
-        region = buttonPressed[buttonPressed.startswith("buttonDisplay_") and len("buttonDisplay_"):]
-        if buttonPressed is not None:
-            myDatabaseHandler = databaseHandler(region, "database.db")
-            mySolution = myDatabaseHandler.readOptimalSolution()
-            jsonToReturnToFrontend = myDatabaseHandler.readEinzugsgebieteForDisplay()
-            myGrid = myDatabaseHandler.readGridForDisplay()
-            header = myDatabaseHandler.readRegionHeader()
-            jsonToReturnToFrontend["Grid"] = myGrid["Grid"]
-            jsonToReturnToFrontend["Relevant"] = myGrid["Relevant"]
-            jsonToReturnToFrontend["MitMassnahme"] = myGrid["MitMassnahme"]
-            jsonToReturnToFrontend["connectedToRelevantNode"] = myGrid["connectedToRelevantNode"]
-            jsonToReturnToFrontend["GeodesicHeight"] = myGrid["GeodesicHeight"]
-            jsonToReturnToFrontend["Flooded"] = mySolution["Flooded"]
-            jsonToReturnToFrontend["waterHeight"] = mySolution["waterHeight"]
-            jsonToReturnToFrontend["handlungsbedarf"] = mySolution["handlungsbedarf"]
-            jsonToReturnToFrontend["center_lat"] = header[9]
-            jsonToReturnToFrontend["center_lon"] = header[10]
-            jsonToReturnToFrontend["Buildings"] = myDatabaseHandler.readBuildingsForDisplay()
-            return jsonify(jsonToReturnToFrontend)
-    return jsonify({'error': 'Something Went Wrong!'})
-
-
-@app.route("/modifyHeaderData")
-@login_required
-def modifyHeaderData():
-    myDatabaseHandler = databaseHandler(request.form.get("region"), "database.db")
-    headers = myDatabaseHandler.readFullHeaderTable()
-    jsonToReturnToFrontend = {}
-    handledHeadersSolved = []
-    for header in headers:
-        jsonToReturnToFrontend[header[0]] = {"amount": header[7], "duration": header[8]}
-        newHeader = header + ("buttonDisplay_" + header[0],)
-        handledHeadersSolved.append(newHeader)
-    # jsonToReturnToFrontend = json.dumps(jsonToReturnToFrontend)
-    return render_template("routes/modifyHeaderData.html", headers=handledHeadersSolved, headersAsJson=jsonToReturnToFrontend)
-
-
-@app.route("/modifyHeaderDataSaveToDatabase_process", methods=["POST"])
-@login_required
-def modifyHeaderDataSaveToDatabaseProcess():
-    if request.method == "POST":
-        returnedData = json.loads(request.form.get("dataset"))
-        if returnedData is not None:
-            region = "someRegion"
-            myDatabaseHandler = databaseHandler(region, "database.db")
-            myDatabaseHandler.updateHeaderDataFromFrontend(returnedData)
-            jsonToReturnToFrontend = jsonify({
-                                                 'success': 'Die Daten wurden erfolgreich in die Datenbank geschrieben. Ende des Prozesses: ' + str(
-                                                     datetime.datetime.now())})
-            return jsonToReturnToFrontend
+        returned_data = json.loads(request.form.get("dataset"))
+        if returned_data is not None:
+            region = returned_data["region"]
+            my_database_handler = LoginDbHandler(region)
+            my_database_handler.update_auffangbecken_from_frontend(returned_data["Auffangbecken"])
+            my_database_handler.update_leitgraeben_from_frontend(returned_data["Leitgraeben"])
+            json_to_return_to_frontend = jsonify({
+                'success': 'Die Daten wurden erfolgreich in die Datenbank geschrieben. Ende des Prozesses: ' + str(
+                    datetime.datetime.now())})
+            return json_to_return_to_frontend
     return jsonify({'error': 'Something Went Wrong!'})
 
 
 @app.route("/modifyOptimizationParameters")
 @login_required
-def modifyOptimizationParameters():
-    myDatabaseHandler = databaseHandler("None", "database.db")
-    headers = myDatabaseHandler.readFullHeaderTable()
-    parameters = myDatabaseHandler.read_all_optimization_parameters()
+def modify_optimization_parameters():
+    my_database_handler = LoginDbHandler(None)
+    headers = my_database_handler.read_user_header_table()
+    parameters = my_database_handler.read_all_optimization_parameters()
     parameter_names = []
     some_region = list(parameters.keys())[0]
     parameters_for_some_region = parameters[some_region]
@@ -705,131 +517,254 @@ def modifyOptimizationParameters():
 
 @app.route("/modifyOptimizationParametersSaveToDatabase_process", methods=["POST"])
 @login_required
-def modifyOptimizationParametersSaveToDatabaseProcess():
+def modify_optimization_parameters_save_to_database_process():
     if request.method == "POST":
         returned_data = json.loads(request.form.get("dataset"))
         if returned_data is not None:
-            myDatabaseHandler = databaseHandler("None", "database.db")
-            myDatabaseHandler.update_optimization_parameters_from_frontend(returned_data)
-            jsonToReturnToFrontend = jsonify({
-                                                 'success': 'Die Daten wurden erfolgreich in die Datenbank geschrieben. Ende des Prozesses: ' + str(
-                                                     datetime.datetime.now())})
-            return jsonToReturnToFrontend
+            my_database_handler = LoginDbHandler(None)
+            my_database_handler.update_optimization_parameters_from_frontend(returned_data)
+            json_to_return_to_frontend = jsonify({
+                'success': 'Die Daten wurden erfolgreich in die Datenbank geschrieben. Ende des Prozesses: ' + str(
+                    datetime.datetime.now())})
+            return json_to_return_to_frontend
     return jsonify({'error': 'Something Went Wrong!'})
 
 
-@app.route("/showMassnahmenSolution")
+@app.route("/showGrid")
 @login_required
-def showMassnahmenSolution():
-    myDatabaseHandler = databaseHandler(request.form.get("region"), "database.db")
-    headers = myDatabaseHandler.readFullHeaderTable()
-    handledHeadersSolved = []
-    for header in headers:
-        if header[3] == 1:
-            newHeader = header + ("buttonDisplay_" + header[0],)
-            handledHeadersSolved.append(newHeader)
-    return render_template("routes/showMassnahmenSolution.html", headers=handledHeadersSolved)
+def show_grid():
+    my_database_handler = LoginDbHandler(request.form.get("region"))
+    headers = my_database_handler.read_user_header_table()
+    return render_template("routes/showGrid.html", headers=headers)
 
 
-@app.route('/showMassnahmenDisplay_process', methods=['GET', 'POST'])
+@app.route("/showGridDisplay_process", methods=["POST"])
 @login_required
-def showMassnahmenDisplayProcess():
+def show_grid_display_process():
     if request.method == "POST":
-        buttonPressed = request.form.get("dataset")
-        region = buttonPressed[buttonPressed.startswith("buttonDisplay_") and len("buttonDisplay_"):]
-        if buttonPressed is not None:
-            myDatabaseHandler = databaseHandler(region, "database.db")
-            mySolution = myDatabaseHandler.readOptimalSolution()
-            header = myDatabaseHandler.readRegionHeader()
-            all_auffangbecken = myDatabaseHandler.readAuffangbecken()
-            all_leitgraeben = myDatabaseHandler.read_leitgraeben()
-            jsonToReturnToFrontend = myDatabaseHandler.readEinzugsgebieteForDisplay()
-            jsonToReturnToFrontend["auffangbeckenInOptimalSolution"] = mySolution["auffangbecken"]
-            jsonToReturnToFrontend["leitgraebenInOptimalSolution"] = mySolution["leitgraeben"]
-            jsonToReturnToFrontend["auffangbecken"] = all_auffangbecken
-            jsonToReturnToFrontend["leitgraeben"] = all_leitgraeben
-            jsonToReturnToFrontend["center_lat"] = header[9]
-            jsonToReturnToFrontend["center_lon"] = header[10]
-            return jsonify(jsonToReturnToFrontend)
+        region_name = request.form.get("dataset")
+        if region_name is not None:
+            my_database_handler = LoginDbHandler(region_name)
+            json_to_return_to_frontend = my_database_handler.read_einzugsgebiete_for_display()
+            my_grid = my_database_handler.read_grid_for_display()
+            header = my_database_handler.read_region_header()
+            json_to_return_to_frontend["Grid"] = my_grid["Grid"]
+            json_to_return_to_frontend["Relevant"] = my_grid["Relevant"]
+            json_to_return_to_frontend["MitMassnahme"] = my_grid["MitMassnahme"]
+            json_to_return_to_frontend["connectedToRelevantNode"] = my_grid["connectedToRelevantNode"]
+            json_to_return_to_frontend["center_lat"] = header["center_lat"]
+            json_to_return_to_frontend["center_lon"] = header["center_lon"]
+            return jsonify(json_to_return_to_frontend)
     return jsonify({'error': 'Something Went Wrong!'})
 
 
-@app.route("/copyRegion")
+@app.route("/showGridSaveToDatabase_process", methods=["POST"])
 @login_required
-def copyRegion():
-    return render_template("routes/copyRegion.html")
-
-
-@app.route("/copyRegion_process", methods=['GET', 'POST'])
-@login_required
-def copyRegion_process():
+def show_grid_save_to_database_process():
     if request.method == "POST":
-        dataset = json.loads(request.form.get("dataset"))
-        myDatabaseHandler = databaseHandler(dataset["from"], "database.db")
-        myDatabaseHandler.copy_region_to(dataset["to"])
-        return jsonify(
-            {'success': 'Die Daten wurden erfolgreich in die Datenbank kopiert am ' + str(datetime.datetime.now())})
+        returned_data = json.loads(request.form.get("dataset"))
+        if returned_data is not None:
+            region = returned_data["region"]
+            my_database_handler = LoginDbHandler(region)
+            my_database_handler.update_relevant_from_frontend(returned_data)
+            json_to_return_to_frontend = jsonify({
+                'success': 'Die Daten wurden erfolgreich in die Datenbank geschrieben. Ende des Prozesses: ' + str(
+                    datetime.datetime.now())})
+            return json_to_return_to_frontend
+    return jsonify({'error': 'Something Went Wrong!'})
+
+
+# ----------------------------------
+# ---------- BERECHNUNGEN ----------
+# ----------------------------------
+@app.route("/computeMitMassnahme")
+@login_required
+def compute_mit_massnahme():
+    my_database_handler = LoginDbHandler(None)
+    headers = my_database_handler.read_user_header_table()
+    return render_template("routes/computeMitMassnahme.html", headers=headers)
+
+
+@app.route('/computeMitMassnahme_process', methods=['GET', 'POST'])
+@login_required
+def compute_mit_massnahme_process():
+    if request.method == "POST":
+        region_name = request.form.get("dataset")
+        if region_name is not None:
+            my_database_handler = LoginDbHandler(region_name)
+            my_database_handler.update_mit_massnahme()
+            return jsonify({'dataset': region_name + " wurde erfolgreich berechnet."})
+    return jsonify({'error': 'Something Went Wrong!'})
+
+
+@app.route("/computeGraphOfRelevantNodes")
+@login_required
+def compute_graph_of_relevant_nodes():
+    my_database_handler = LoginDbHandler(None)
+    headers = my_database_handler.read_user_header_table()
+    return render_template("routes/computeGraphOfRelevantNodes.html", headers=headers)
+
+
+@app.route('/computeGraphOfRelevantNodes_process', methods=['GET', 'POST'])
+@login_required
+def compute_graph_of_relevant_nodes_process():
+    if request.method == "POST":
+        region_name = request.form.get("dataset")
+        if region_name is not None:
+            my_database_handler = LoginDbHandler(region_name)
+            my_database_handler.update_relevant()
+            return jsonify({'dataset': region_name + " wurde erfolgreich berechnet."})
     return jsonify({'error': 'Something Went Wrong!'})
 
 
 @app.route("/computeMassnahmenKataster")
 @login_required
-def computeMassnahmenKataster():
-    myDatabaseHandler = databaseHandler("anyRegion", "database.db")
-    headers = myDatabaseHandler.readFullHeaderTable()
-    handledHeaders = []
-    for header in headers:
-        newHeader = header + ("buttonBerechnen_" + header[0],)
-        handledHeaders.append(newHeader)
-    return render_template("routes/computeMassnahmenKataster.html", headers=handledHeaders)
+def compute_massnahmen_kataster():
+    my_database_handler = LoginDbHandler(None)
+    headers = my_database_handler.read_user_header_table()
+    return render_template("routes/computeMassnahmenKataster.html", headers=headers)
 
 
 @app.route('/computeMassnahmenKataster_process', methods=['GET', 'POST'])
 @login_required
-def computeMassnahmenKatasterProcess():
+def compute_massnahmen_kataster_process():
     if request.method == "POST":
-        buttonPressed = request.form.get("dataset")
-        region = buttonPressed[buttonPressed.startswith("buttonBerechnen_") and len("buttonBerechnen_"):]
-        if buttonPressed is not None:
-            myDatabaseHandler = databaseHandler(region, "database.db")
-            myDatabaseHandler.compute_massnahmen_kataster()
-            return jsonify({'dataset': buttonPressed[buttonPressed.startswith("buttonBerechnen_") and len(
-                "buttonBerechnen_"):] + " wurde erfolgreich berechnet."})
+        region_name = request.form.get("dataset")
+        if region_name is not None:
+            my_database_handler = LoginDbHandler(region_name)
+            my_database_handler.compute_massnahmen_kataster()
+            return jsonify({'dataset': region_name + " wurde erfolgreich berechnet."})
+    return jsonify({'error': 'Something Went Wrong!'})
+
+
+@app.route("/computeOptimalSolution")
+@login_required
+def compute_optimal_solution():
+    my_database_handler = LoginDbHandler(None)
+    headers = my_database_handler.read_user_header_table()
+    return render_template("routes/computeOptimalSolution.html", headers=headers)
+
+
+@app.route('/computeOptimalSolution_process', methods=['GET', 'POST'])
+@login_required
+def compute_optimal_solution_process():
+    if request.method == "POST":
+        region_name = request.form.get("dataset")
+        if region_name is not None:
+            my_database_handler = LoginDbHandler(region_name)
+            my_database_handler.compute_optimal_solution()
+            return jsonify({'dataset': region_name + " wurde erfolgreich berechnet."})
+    return jsonify({'error': 'Something Went Wrong!'})
+
+
+# -------------------------------
+# ---------- LOESUNGEN ----------
+# -------------------------------
+@app.route("/showHandlungsbedarf")
+@login_required
+def show_handlungsbedarf():
+    my_database_handler = LoginDbHandler(request.form.get("region"))
+    headers = my_database_handler.read_user_header_table_solved_only()
+    return render_template("routes/showHandlungsbedarf.html", headers=headers)
+
+
+@app.route('/showHandlungsbedarfDisplay_process', methods=['GET', 'POST'])
+@login_required
+def show_handlungsbedarf_display_process():
+    if request.method == "POST":
+        region_name = request.form.get("dataset")
+        if region_name is not None:
+            my_database_handler = LoginDbHandler(region_name)
+            my_solution = my_database_handler.read_optimal_solution()
+            json_to_return_to_frontend = my_database_handler.read_einzugsgebiete_for_display()
+            my_grid = my_database_handler.read_grid_for_display()
+            header = my_database_handler.read_region_header()
+            json_to_return_to_frontend["Grid"] = my_grid["Grid"]
+            json_to_return_to_frontend["Relevant"] = my_grid["Relevant"]
+            json_to_return_to_frontend["MitMassnahme"] = my_grid["MitMassnahme"]
+            json_to_return_to_frontend["connectedToRelevantNode"] = my_grid["connectedToRelevantNode"]
+            json_to_return_to_frontend["GeodesicHeight"] = my_grid["GeodesicHeight"]
+            json_to_return_to_frontend["Flooded"] = my_solution["Flooded"]
+            json_to_return_to_frontend["waterHeight"] = my_solution["waterHeight"]
+            json_to_return_to_frontend["handlungsbedarf"] = my_solution["handlungsbedarf"]
+            json_to_return_to_frontend["center_lat"] = header["center_lat"]
+            json_to_return_to_frontend["center_lon"] = header["center_lon"]
+            json_to_return_to_frontend["Buildings"] = my_database_handler.read_buildings_for_display()
+            return jsonify(json_to_return_to_frontend)
     return jsonify({'error': 'Something Went Wrong!'})
 
 
 @app.route("/showFliesswege")
 @login_required
-def showFliesswege():
-    myDatabaseHandler = databaseHandler(request.form.get("region"), "database.db")
-    headers = myDatabaseHandler.readFullHeaderTable()
-    handledHeadersSolved = []
-    for header in headers:
-        if header[3] == 1:
-            newHeader = header + ("buttonDisplay_" + header[0],)
-            handledHeadersSolved.append(newHeader)
-    return render_template("routes/showFliesswege.html", headers=handledHeadersSolved)
+def show_fliesswege():
+    my_database_handler = LoginDbHandler(request.form.get("region"))
+    headers = my_database_handler.read_user_header_table_solved_only()
+    return render_template("routes/showFliesswege.html", headers=headers)
 
 
 @app.route('/showFliesswegeDisplay_process', methods=['GET', 'POST'])
 @login_required
-def showFliesswegeDisplayProcess():
+def show_fliesswege_display_process():
     if request.method == "POST":
-        buttonPressed = request.form.get("dataset")
-        region = buttonPressed[buttonPressed.startswith("buttonDisplay_") and len("buttonDisplay_"):]
-        if buttonPressed is not None:
-            myDatabaseHandler = databaseHandler(region, "database.db")
-            mySolution = myDatabaseHandler.readOptimalSolution()
-            header = myDatabaseHandler.readRegionHeader()
-            jsonToReturnToFrontend = myDatabaseHandler.readEinzugsgebieteForDisplay()
-            myGrid = myDatabaseHandler.readGridForDisplay()
-            jsonToReturnToFrontend["Grid"] = myGrid["Grid"]
-            # jsonToReturnToFrontend["Relevant"] = myGrid["Relevant"]
-            # jsonToReturnToFrontend["MitMassnahme"] = myGrid["MitMassnahme"]
-            # jsonToReturnToFrontend["connectedToRelevantNode"] = myGrid["connectedToRelevantNode"]
-            # jsonToReturnToFrontend["GeodesicHeight"] = myGrid["GeodesicHeight"]
-            jsonToReturnToFrontend["flow_through_nodes"] = mySolution["flow_through_nodes"]
-            jsonToReturnToFrontend["center_lat"] = header[9]
-            jsonToReturnToFrontend["center_lon"] = header[10]
-            return jsonify(jsonToReturnToFrontend)
+        region_name = request.form.get("dataset")
+        if region_name is not None:
+            my_database_handler = LoginDbHandler(region_name)
+            my_solution = my_database_handler.read_optimal_solution()
+            header = my_database_handler.read_region_header()
+            json_to_return_to_frontend = my_database_handler.read_einzugsgebiete_for_display()
+            my_grid = my_database_handler.read_grid_for_display()
+            json_to_return_to_frontend["Grid"] = my_grid["Grid"]
+            # json_to_return_to_frontend["Relevant"] = my_grid["Relevant"]
+            # json_to_return_to_frontend["MitMassnahme"] = my_grid["MitMassnahme"]
+            # json_to_return_to_frontend["connectedToRelevantNode"] = my_grid["connectedToRelevantNode"]
+            # json_to_return_to_frontend["GeodesicHeight"] = my_grid["GeodesicHeight"]
+            json_to_return_to_frontend["flow_through_nodes"] = my_solution["flow_through_nodes"]
+            json_to_return_to_frontend["center_lat"] = header["center_lat"]
+            json_to_return_to_frontend["center_lon"] = header["center_lon"]
+            return jsonify(json_to_return_to_frontend)
     return jsonify({'error': 'Something Went Wrong!'})
+
+
+@app.route("/showMassnahmenSolution")
+@login_required
+def show_massnahmen_solution():
+    my_database_handler = LoginDbHandler(request.form.get("region"))
+    headers = my_database_handler.read_user_header_table_solved_only()
+    return render_template("routes/showMassnahmenSolution.html", headers=headers)
+
+
+@app.route('/showMassnahmenDisplay_process', methods=['GET', 'POST'])
+@login_required
+def show_massnahmen_display_process():
+    if request.method == "POST":
+        region_name = request.form.get("dataset")
+        if region_name is not None:
+            my_database_handler = LoginDbHandler(region_name)
+            my_solution = my_database_handler.read_optimal_solution()
+            header = my_database_handler.read_region_header()
+            all_auffangbecken = my_database_handler.read_auffangbecken()
+            all_leitgraeben = my_database_handler.read_leitgraeben()
+            json_to_return_to_frontend = my_database_handler.read_einzugsgebiete_for_display()
+            json_to_return_to_frontend["auffangbeckenInOptimalSolution"] = my_solution["auffangbecken"]
+            json_to_return_to_frontend["leitgraebenInOptimalSolution"] = my_solution["leitgraeben"]
+            json_to_return_to_frontend["auffangbecken"] = all_auffangbecken
+            json_to_return_to_frontend["leitgraeben"] = all_leitgraeben
+            json_to_return_to_frontend["center_lat"] = header["center_lat"]
+            json_to_return_to_frontend["center_lon"] = header["center_lon"]
+            return jsonify(json_to_return_to_frontend)
+    return jsonify({'error': 'Something Went Wrong!'})
+
+
+# ------------------------------
+# ---------- LOESCHEN ----------
+# ------------------------------
+@app.route("/delete", methods=['GET', 'POST'])
+@login_required
+def delete():
+    my_login_db_handler = LoginDbHandler(None)
+    region_list = my_login_db_handler.get_user_region_list()
+    if request.method == "POST":
+        my_database_handler = LoginDbHandler(request.form.get("Region"))
+        my_database_handler.delete_region()
+        flash(f"Daten für Region {request.form.get('Region')} gelöscht!", 'success')
+    return render_template("routes/delete.html", regions=region_list)

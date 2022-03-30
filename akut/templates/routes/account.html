@@ -30,10 +30,10 @@
                 <br>
                 <br>
                 <input type="text" id="User" name="User" class="hidden"
-                   placeholder="Username oder E-Mail" method="post">
+                       placeholder="Username oder E-Mail" method="post">
                 <br>
                 <br>
-                <input type="submit" id= "Execute" value="Ausführen" class="btn btn-lg btn-primary"/>
+                <input type="submit" id="Execute" value="Ausführen" class="btn btn-lg btn-primary"/>
             </div>
             <br>
             <div id="successAlert" class="alert alert-success" role="alert" style="display:none;"></div>
@@ -43,15 +43,16 @@
 </div>
 
 <script>
-    function updateAktion(){
-        let user = document.getElementById("User");
-        let action = $('select[name=Aktion]').val();
+function updateAktion(){
+    let user = document.getElementById("User");
+    let action = $('select[name=Aktion]').val();
 
-        if (action !== "Freigeben" && action !== "Admin abgeben"){
-            user.classList.add('hidden');
-        }else{
-            user.classList.remove('hidden');
-        }
+    if (action !== "Freigeben" && action !== "Admin abgeben"){
+        user.classList.add('hidden');
+    }else{
+        user.classList.remove('hidden');
     }
+}
+
 </script>
 {% endblock content %}

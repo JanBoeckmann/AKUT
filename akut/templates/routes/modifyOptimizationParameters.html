@@ -60,10 +60,10 @@
 <div class="container">
     <div class="col-md-8">
         <div class="container" id="bottomDisplayContainer">
-            <select class="selectpicker" id="selectpickerRegion">
+            <select class="selectpicker" name="selectpickerRegion" id="selectpickerRegion">
                 <option value="" selected disabled>Region wählen</option>
                 {% for header in headers %}
-                <option value={{header[0]}}>{{header[0]}}</option>
+                <option value={{header}}>{{header}}</option>
                 {% endfor %}
             </select>
             <br>
