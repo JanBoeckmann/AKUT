@@ -10,7 +10,7 @@
             <select class="selectpicker" name="Region" id="Region">
                 <option value="" selected disabled>Region auswählen</option>
                 {% for region in regions %}
-                <option value={{region}}>{{region}}</option>
+                <option value={{region.name}}>{{region.name}}</option>
                 {% endfor %}
             </select>
             <p style="text-align: right; margin-top: 120px;">

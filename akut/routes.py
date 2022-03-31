@@ -72,49 +72,6 @@ def logout():
     return redirect(url_for('login'))
 
 
-@app.route("/account", methods=['GET', 'POST'])
-@login_required
-def account():
-    if current_user == User.query.filter_by(username='admin').first():
-        return redirect(url_for('panel'))
-
-    my_login_handler = LoginDbHandler(None)
-    if current_user.messages_recieved:
-        my_login_handler.show_messages()
-    region_list = my_login_handler.get_user_region_list()
-
-    if request.method == 'POST':
-        action, region = request.form.get("Aktion"), request.form.get("Region")
-        if not region:
-            flash('Füllen Sie bitte das Feld "Region auswählen" aus!', 'info')
-            return redirect(url_for('account'))
-        if not action:
-            flash('Füllen Sie bitte das Feld "Aktion auswählen" aus!', 'info')
-            return redirect(url_for('account'))
-        my_login_handler = LoginDbHandler(region)
-
-        if action == "Entfernen":
-            my_login_handler.delete_region_association()
-            region_list.remove(region)
-        elif action == "Freigeben" or action == "Admin abgeben":
-            user = request.form.get("User")
-            if not user:
-                flash('Füllen Sie Feld User aus!', 'info')
-                return redirect(url_for('account'))
-            user_manage = User.query.filter_by(username=user).first()
-            if not user_manage:
-                user_manage = User.query.filter_by(email=user).first()
-            if not user_manage:
-                flash(f'User/Email "{user}" nicht gefunden!', 'warning')
-                return redirect(url_for('account'))
-            if action == "Freigeben":
-                my_login_handler.share_region(user_manage)
-            if action == "Admin abgeben":
-                my_login_handler.hand_over_region(user_manage)
-            return redirect(url_for('account'))
-    return render_template("routes/account.html", regions=region_list)
-
-
 def send_reset_email(user):
     token = user.get_reset_token()
     message = Message('Password Reset Request', sender='noreply@akut.com', recipients=[user.email])
@@ -157,6 +114,52 @@ def reset_token(token):
     return render_template('routes/reset_token.html', title='Reset Password', form=form)
 
 
+@app.route("/account", methods=['GET', 'POST'])
+@login_required
+def account():
+    if current_user == User.query.filter_by(username='admin').first():
+        return redirect(url_for('panel'))
+
+    my_login_handler = LoginDbHandler(None)
+    if current_user.messages_recieved:
+        my_login_handler.show_messages()
+    regions = my_login_handler.read_user_regions()
+
+    if request.method == 'POST':
+        # Init, Validierung
+        action, region = request.form.get("Aktion"), request.form.get("Region")
+        if not region:
+            flash('Füllen Sie bitte das Feld "Region auswählen" aus!', 'info')
+            return redirect(url_for('account'))
+        if not action:
+            flash('Füllen Sie bitte das Feld "Aktion auswählen" aus!', 'info')
+            return redirect(url_for('account'))
+        my_login_handler = LoginDbHandler(region)
+
+        # Aktionen
+        if action == "Entfernen":
+            my_login_handler.delete_region_association()
+        elif action == "Freigeben" or action == "Admin abgeben":
+            # Init further, Validierung
+            user = request.form.get("User")
+            if not user:
+                flash('Füllen Sie Feld User aus!', 'info')
+                return redirect(url_for('account'))
+            user_manage = User.query.filter_by(username=user).first()
+            if not user_manage:
+                user_manage = User.query.filter_by(email=user).first()
+            if not user_manage:
+                flash(f'User/Email "{user}" nicht gefunden!', 'warning')
+                return redirect(url_for('account'))
+
+            if action == "Freigeben":
+                my_login_handler.assign_new_region_association(user_manage)
+            if action == "Admin abgeben":
+                my_login_handler.hand_over_region_admin(user_manage)
+        return redirect(url_for('account'))
+    return render_template("routes/account.html", regions=regions)
+
+
 # --------------------------------
 # ---------- ADMINPANEL ----------
 # --------------------------------
@@ -173,8 +176,8 @@ def panel():
     my_login_db_handler = LoginDbHandler(None)
     if current_user.messages_recieved:
         my_login_db_handler.show_messages()
-    all_regions_dict = my_login_db_handler.get_all_information(Region, 'name')
-    all_users_dict = my_login_db_handler.get_all_information(User, 'username')
+    all_regions_dict = my_login_db_handler.get_all_admin_information(Region, 'name')
+    all_users_dict = my_login_db_handler.get_all_admin_information(User, 'username')
     return render_template("routes/adminpanel.html", region_info=all_regions_dict, user_info=all_users_dict)
 
 
@@ -183,7 +186,7 @@ def panel():
 def panel_edit_region(regionid):
     check_for_admin_user()
     my_login_db_handler = LoginDbHandler(None)
-    region_info_dict = my_login_db_handler.get_information_for_admin_edit(Region, regionid)
+    region_info_dict = my_login_db_handler.get_object_admin_information(Region, regionid)
     return render_template("routes/adminpanel_edit_region.html", region_info=region_info_dict)
 
 
@@ -219,7 +222,7 @@ def panel_delete_region(regionid):
 def panel_edit_user(userid):
     check_for_admin_user()
     my_login_db_handler = LoginDbHandler(None)
-    user_info_dict = my_login_db_handler.get_information_for_admin_edit(User, userid)
+    user_info_dict = my_login_db_handler.get_object_admin_information(User, userid)
     return render_template("routes/adminpanel_edit_user.html", user_info=user_info_dict)
 
 
@@ -270,9 +273,10 @@ def check_upload():
         if region_name_upload == '':
             flash('Bitte Regionname angeben!', 'info')
             return None
+
         my_db_handler = LoginDbHandler(None)
-        regions_in_db = my_db_handler.get_all_region_names()
-        for region in regions_in_db:
+        regionlist_from_db = my_db_handler.read_list_of_all_regions()
+        for region in regionlist_from_db:
             ratio = SequenceMatcher(a=region_name_upload, b=region).ratio()
             if ratio >= 0.75:
                 pass  # TODO
@@ -288,6 +292,10 @@ def upload_einzugsgebiete():  # Modellgrenzen
             return redirect(request.url)
         uploaded_data[0].save(os.path.join(folder, uploaded_data[1]))
         my_database_handler = LoginDbHandler(uploaded_data[2])
+        if not uploaded_data[1].rsplit('.', 1)[1].lower() == "csv":
+            flash(f'Bitte als Dateityp .csv wählen!', 'info')
+            return redirect(request.url)
+
         my_database_handler.write_uploaded_einzugsgebiete_to_database(folder, uploaded_data[1])
     return render_template("routes/uploadEinzugsgebiete.html")
 
@@ -385,7 +393,7 @@ def modify_header_data_save_to_database_process():
 @login_required
 def modify_buildings():
     my_database_handler = LoginDbHandler(request.form.get("region"))
-    regions = my_database_handler.get_user_regions()
+    regions = my_database_handler.read_user_regions()
     return render_template("routes/modifyBuildings.html", regions=regions)
 
 
@@ -772,9 +780,10 @@ def show_massnahmen_display_process():
 @login_required
 def delete():
     my_login_db_handler = LoginDbHandler(None)
-    region_list = my_login_db_handler.get_user_region_list()
+    regions = my_login_db_handler.read_user_regions()
     if request.method == "POST":
         my_database_handler = LoginDbHandler(request.form.get("Region"))
         my_database_handler.delete_region()
         flash(f"Daten für Region {request.form.get('Region')} gelöscht!", 'success')
-    return render_template("routes/delete.html", regions=region_list)
+        return redirect(url_for('delete'))
+    return render_template("routes/delete.html", regions=regions)

@@ -53,7 +53,7 @@ class LoginDbHandler:
 
     def show_messages(self):
         for message in self.user.messages_recieved:
-            if message.region_id:  # Filtere Gelöschte Region
+            if message.region_id:  # Filtere Messages gelöschter Regionen
                 region = Region.query.filter_by(id=message.region_id).first()
                 if not region:
                     self.database.session.delete(message)
@@ -62,33 +62,24 @@ class LoginDbHandler:
             self.database.session.delete(message)
         self.database.session.commit()
 
-    def get_user_region_list(self):
-        region_array = []
-        regions_id = User_Region.query.filter_by(user_id=self.user.id).all()
-        for r_id in regions_id:
-            region_id = r_id.region_id
-            r = Region.query.filter_by(id=region_id).first()
-            region_array.append(r.name)
-        return region_array
-
     def delete_region_association(self):
-        self.check_rights()
-        if self.region.admin_id == current_user.id:
-            if len(self.region.users) == 1:  # Wenn kein anderer User Region hat: Admin die Region übertragen
+        self.check_edit_rights()
+        if self.region.admin_id == current_user.id:  # Blockiere Entfernung, wenn User admin der Region ist
+            if len(self.region.users) == 1:
                 self.database.session.add(
                     User_Region(region_id=self.region.id, user_id=User.query.filter_by(username="admin").first().id))
                 flash(f'Geben Sie vorher den Admin der Region "{self.region.name}" an User "admin" ab!', 'info')
             else:
                 flash(f'Geben Sie vorher den Admin der Region "{self.region.name}" ab!', 'warning')
             return redirect(url_for('account'))
-        delete_object = User_Region.query.filter_by(user_id=current_user.id).filter_by(
-            region_id=self.region.id).first()
-        self.database.session.delete(delete_object)
+
+        self.database.session.delete(User_Region.query.filter_by(user_id=current_user.id).filter_by(
+            region_id=self.region.id).first())
         flash(f'Region-Zuweisung für "{self.region.name}" gelöscht!', 'success')
         self.database.session.commit()
 
-    def share_region(self, user_manage):
-        self.check_rights()
+    def assign_new_region_association(self, user_manage):
+        self.check_edit_rights()
         if User_Region.query.filter_by(user_id=user_manage.id).filter_by(region_id=self.region.id).first():
             flash(f'User "{user_manage.username}" hat Region bereits!', 'warning')
             return redirect(url_for('account'))
@@ -99,11 +90,12 @@ class LoginDbHandler:
         self.database.session.add(message)
         self.database.session.commit()
 
-    def hand_over_region(self, user_manage):
-        self.check_rights()
-        if not self.region.admin_id == current_user.id:
+    def hand_over_region_admin(self, user_manage):
+        self.check_edit_rights()
+        if not self.region.admin_id == current_user.id:  # Blockiere Admin-Abgeben, wenn User nicht admin ist
             flash(f'Sie sind kein Admin der Region "{self.region.name}"!', 'warning')
             return redirect(url_for('account'))
+
         self.region.admin_id = user_manage.id
         flash(f'Admin von "{self.region.name}" abgegeben an "{user_manage.username}"!', 'success')
         message = Messages(user_to_id=user_manage.id, user_from_id=current_user.id, region_id=self.region.id,
@@ -112,54 +104,27 @@ class LoginDbHandler:
         self.database.session.commit()
 
     def change_pw(self, new_pw):
-        hashed_password = bcrypt.generate_password_hash(new_pw).decode('utf-8')
-        self.user.password = hashed_password
+        self.user.password = bcrypt.generate_password_hash(new_pw).decode('utf-8')
         self.database.session.commit()
         flash('Passwort aktualisiert!', 'success')
 
-    def get_user_regions(self):
-        region_array = []
-        association_list = User_Region.query.filter_by(user=self.user).all()
-        region_ids = []
-        for association in association_list:
-            region_ids.append(association.region_id)
-        for region_id in region_ids:
-            region_array.append(Region.query.filter_by(id=region_id).first())
-        return region_array
+    def check_edit_rights(self):
+        association = User_Region.query.filter_by(user_id=self.user.id).filter_by(
+            region_id=self.region.id).first()
+        if not association:
+            return abort(403)
 
-    @staticmethod
-    def get_all_region_names():
-        region_array = []
-        for region in Region.query.all():
-            region_array.append(region.name)
-        return region_array
-
-    def get_all_region_information(self):
-        regions = Region.query.all()
-        region_dict = dict()
-        for region in regions:
-            dictionary = self.db_object_to_dict(region)
-            region_dict[region.name] = dictionary
-        return region_dict
-
-    def get_all_user_information(self):
-        users = User.query.all()
-        region_dict = dict()
-        for user in users:
-            dictionary = self.db_object_to_dict(user)
-            region_dict[user.username] = dictionary
-        return region_dict
-
-    def get_all_information(self, Database, key):
-        data = Database.query.all()
+    # --------------------------------
+    # ---------- ADMINPANEL ----------
+    # --------------------------------
+    def get_all_admin_information(self, Database, string_for_key):
         returned_dict = dict()
-        for d in data:
+        for d in Database.query.all():
             dictionary = self.compute_additional_information(self.db_object_to_dict(d), Database)
-            real_key = dictionary[key]
-            returned_dict[real_key] = dictionary
+            returned_dict[dictionary[string_for_key]] = dictionary
         return returned_dict
 
-    def get_information_for_admin_edit(self, Database, identification):
+    def get_object_admin_information(self, Database, identification):
         db_object = Database.query.filter_by(id=identification).first()
         returned_dict = self.compute_additional_information(self.db_object_to_dict(db_object), Database)
         return returned_dict
@@ -193,7 +158,6 @@ class LoginDbHandler:
                     dictionary["regions_not"].append(users_from_db.name)
             for admin_region in User.query.filter_by(id=dictionary["id"]).first().admin_regions:
                 dictionary["admin_regions"].append(admin_region.name)
-
             dictionary["regions_string"] = ", ".join(dictionary["regions"])
         return dictionary
 
@@ -337,19 +301,29 @@ class LoginDbHandler:
         self.database.session.commit()
         print(f"deleted {user.username}")
 
-    def check_rights(self):
-        association = User_Region.query.filter_by(user_id=self.user.id).filter_by(
-            region_id=self.region.id).first()
-        if not association:
-            return abort(403)
+    def delete_region(self):
+        if not self.region:
+            flash(f'Region {self.regionname} existiert nicht!', 'warning')
+            return redirect(request.url)
+        self.check_edit_rights()
+        for db in [Header, Data, Solutions, DataBuildings, Kataster, Einzugsgebiete, Auffangbecken, Leitgraeben, DGM1,
+                   DGM5, DGM25, OptimizationParameters, MassnahmenKatasterMapping, ]:
+            db.query.filter_by(region=self.region.name).delete()
+        User_Region.query.filter_by(region_id=self.region.id).delete()
+        Region.query.filter_by(name=self.regionname).delete()
+        self.database.session.commit()
 
-    # ------------------------------
-    # ---------- NUR INTERN --------
-    # ------------------------------
-
+    # --------------------------
+    # ---------- INTERN --------
+    # --------------------------
     @staticmethod
     def myround(x, base=5):
         return base * round(x / base)
+
+    @staticmethod
+    def db_object_to_dict(db_object):
+        dictionary = dict((col, getattr(db_object, col)) for col in db_object.__table__.columns.keys())
+        return dictionary
 
     @staticmethod
     def dict_to_array(input_dict):
@@ -385,25 +359,29 @@ class LoginDbHandler:
                              polygon_point_lower_left]
         return position, new_polygon_array
 
-    @staticmethod
-    def db_object_to_dict(db_object):
-        dictionary = dict((col, getattr(db_object, col)) for col in db_object.__table__.columns.keys())
-        return dictionary
-
     # ---------------------------------------------
     # ---------- MEHRFACH GENUTZTE READS ----------
     # ---------------------------------------------
+    def read_user_regions(self):
+        region_array = []
+        association_list = User_Region.query.filter_by(user=self.user).all()
+        region_ids = []
+        for association in association_list:
+            region_ids.append(association.region_id)
+        for region_id in region_ids:
+            region_array.append(Region.query.filter_by(id=region_id).first())
+        return region_array
 
     def read_user_header_table(self):
         header_dict = dict()
-        for region in self.get_user_regions():
+        for region in self.read_user_regions():
             for header in region.header:
                 header_dict[header.region] = self.db_object_to_dict(header)
         return header_dict
 
     def read_user_header_table_solved_only(self):
         header_dict = dict()
-        for region in self.get_user_regions():
+        for region in self.read_user_regions():
             for header in region.header:
                 if header.solved == 1:
                     header_dict[header.region] = self.db_object_to_dict(header)
@@ -415,9 +393,8 @@ class LoginDbHandler:
     def read_einzugsgebiete_for_display(self):
         returned_data = dict()
         e_array = []
-        einzugsgebiete = Einzugsgebiete.query.filter_by(region=self.region.name).all()
-        for e in einzugsgebiete:
-            e_array.append([e.yCoord, e.xCoord])
+        for einzugsgebiet in Einzugsgebiete.query.filter_by(region=self.region.name).all():
+            e_array.append([einzugsgebiet.yCoord, einzugsgebiet.xCoord])
         returned_data["Einzugsgebiete"] = e_array
         returned_data["region"] = self.region.name
         return returned_data
@@ -425,23 +402,22 @@ class LoginDbHandler:
     def read_kataster_for_display(self):
         my_kataster_in_dict = dict()
         returned_data = dict()
-        kataster = Kataster.query.filter_by(region=self.region.name).filter_by(inEinzugsgebiete=1).all()
-        for k in kataster:
-            points = k.position.split(";")
+        for kataster in Kataster.query.filter_by(region=self.region.name).filter_by(inEinzugsgebiete=1).all():
+            points = kataster.position.split(";")
             points_of_polygon = []
             for point in points:
                 new_point = point.split(",")
                 new_point_tuple = (float(new_point[0]), float(new_point[1]))
                 points_of_polygon.append(new_point_tuple)
-            my_kataster_in_dict[k.id] = {"position": points_of_polygon, "additionalCost": k.additionalCost}
+            my_kataster_in_dict[kataster.id] = {"position": points_of_polygon,
+                                                "additionalCost": kataster.additionalCost}
         returned_data["Kataster"] = my_kataster_in_dict
         return returned_data
 
     def read_buildings_for_display(self):
-        buildings = DataBuildings.query.filter_by(region=self.region.name).all()
         my_buildings_in_dictionary = dict()
-        for b in buildings:
-            b_dict = self.db_object_to_dict(b)
+        for building in DataBuildings.query.filter_by(region=self.region.name).all():
+            b_dict = self.db_object_to_dict(building)
             new_building = dict()
             for key, value in b_dict.items():
                 new_building[key] = value
@@ -520,11 +496,9 @@ class LoginDbHandler:
 
     def read_auffangbecken(self):
         auffangbecken_frontend = dict()
-        auffangbecken_db = Auffangbecken.query.filter_by(region_id=self.region.id).all()
-        for auffangbecken in auffangbecken_db:
-            points = auffangbecken.position.split(self.delimiter)
+        for auffangbecken in Auffangbecken.query.filter_by(region_id=self.region.id).all():
             points_of_polygon = []
-            for point in points:
+            for point in auffangbecken.position.split(self.delimiter):
                 new_point = point.split(",")
                 new_point_tuple = (float(new_point[0]), float(new_point[1]))
                 points_of_polygon.append(new_point_tuple)
@@ -536,12 +510,10 @@ class LoginDbHandler:
         return auffangbecken_frontend
 
     def read_leitgraeben(self):
-        my_leitgraeben_from_database = Leitgraeben.query.filter_by(region_id=self.region.id).all()
         leitgraeben_for_frontend = dict()
-        for leitgraben in my_leitgraeben_from_database:
-            points_ofleitgraben = leitgraben.position.split(self.delimiter)
+        for leitgraben in Leitgraeben.query.filter_by(region_id=self.region.id).all():
             points_of_polygon = []
-            for point in points_ofleitgraben:
+            for point in leitgraben.position.split(self.delimiter):
                 new_point = point.split(",")
                 new_point_tuple = (float(new_point[0]), float(new_point[1]))
                 points_of_polygon.append(new_point_tuple)
@@ -556,16 +528,14 @@ class LoginDbHandler:
     @staticmethod
     def read_gebaeudeklasse_to_schadensklasse():
         gebaeudeklasse_to_schadensklasse_as_dict = dict()
-        gebaeudeklasse_to_schadensklasse_from_db = GlobalToSchadensklasse.query.all()
-        for entry in gebaeudeklasse_to_schadensklasse_from_db:
+        for entry in GlobalToSchadensklasse.query.all():
             gebaeudeklasse_to_schadensklasse_as_dict[entry.gebaeudeklasse] = entry.schadensklasse
         return gebaeudeklasse_to_schadensklasse_as_dict
 
     @staticmethod
     def read_gebaeudeklasse_to_akteur():
-        gebaeudeklasse_to_akteur_from_db = GlobalToAkteur.query.all()
         gebaeudeklasse_to_akteur_as_dict = dict()
-        for entry in gebaeudeklasse_to_akteur_from_db:
+        for entry in GlobalToAkteur.query.all():
             gebaeudeklasse_to_akteur_as_dict[entry.gebaeudeklasse] = entry.akteur
         return gebaeudeklasse_to_akteur_as_dict
 
@@ -594,13 +564,17 @@ class LoginDbHandler:
     # --------------------------------------
     # ---------- UPLOADS/KOPIEREN ----------
     # --------------------------------------
+    @staticmethod
+    def read_list_of_all_regions():
+        region_array = []
+        for region in Region.query.all():
+            region_array.append(region.name)
+        return region_array
 
     def write_uploaded_einzugsgebiete_to_database(self, path, filename):
-        if not self.region:
-            # Neue Regionen hochladen
+        if not self.region:  # Neue Regionen hochladen, Gebe admin Region frei
             self.region = Region(name=self.regionname, admin_id=self.user.id)
             self.database.session.add(self.region)
-            # Gebe admin Region frei
             self.region.users.append(User_Region(user=User.query.filter_by(username='admin').first()))
             flash(f'Modellgrenzen der Region {self.region.name} hochgeladen!', 'success')
         else:
@@ -628,7 +602,7 @@ class LoginDbHandler:
         self.database.session.commit()
 
     def initialize_optimization_parameters(self, param_id):
-        self.check_rights()
+        self.check_edit_rights()
         OptimizationParameters.query.filter_by(region_id=self.region.id).delete()
         parameters = {
             "gefahrenklasse1schadensklasse1": 1,
@@ -672,17 +646,15 @@ class LoginDbHandler:
         flash(f'DGM der Region {self.region.name} hochgeladen!', 'success')
 
     def write_uploaded_data_to_dgm1(self, path, filename):  # , reuse
-        self.check_rights()
+        self.check_edit_rights()
         if not self.region:
             flash(
                 f'Region "{self.regionname}" existiert nicht! '
                 f'Bitte überprüfen sie den Namen oder laden sie die Modellgrenzen hoch',
                 'info')
             return redirect(request.url)
-        Header.query.filter_by(region_id=self.region.id).delete()
-        DGM1.query.filter_by(region_id=self.region.id).delete()
-        DGM5.query.filter_by(region_id=self.region.id).delete()
-        DGM25.query.filter_by(region_id=self.region.id).delete()
+        for database in [Header, DGM1, DGM5, DGM25]:
+            database.query.filter_by(region_id=self.region.id).delete()
         db_object_array = []
         # in database, we want the geodesic height in mm. Adjust the scaling factor as desired (10 for cm, 1000 for m)
         if self.customer == "Wismar" or self.customer == "KMB" or self.customer == "Ersfeld":
@@ -759,8 +731,6 @@ class LoginDbHandler:
         self.initialize_optimization_parameters("init")
 
     def write_uploaded_kataster_as_xml_to_database(self, path, filename):
-        self.check_rights()
-
         def get_new_points(array):
             returned_aray = []
             while array:
@@ -869,7 +839,7 @@ class LoginDbHandler:
                 f'Bitte überprüfen sie den Namen oder laden sie die Modellgrenzen hoch',
                 'info')
             return redirect(request.url)
-        self.check_rights()
+        self.check_edit_rights()
         for data_building in self.region.databuildings:
             self.database.session.delete(data_building)
         db_objects = []
@@ -932,7 +902,7 @@ class LoginDbHandler:
                 f'Bitte überprüfen sie den Namen oder laden sie die Modellgrenzen hoch',
                 'info')
             return redirect(request.url)
-        self.check_rights()
+        self.check_edit_rights()
         for data_building in self.region.databuildings:
             self.database.session.delete(data_building)
         db_objects = []
@@ -983,11 +953,11 @@ class LoginDbHandler:
         self.database.session.add_all(data_new)
 
     def copy_region_to(self, new_region_name):
-        if not self.region:  # Region_from
+        if not self.region:  # region_from
             flash(f'Region {self.regionname} existiert nicht!', 'warning')
             return redirect(request.url)
-        self.check_rights()
-        new_region_in_db = Region.query.filter_by(name=new_region_name).first()
+        self.check_edit_rights()
+        new_region_in_db = Region.query.filter_by(name=new_region_name).first()  # region_to
         if new_region_in_db is None:
             new_region_in_db = Region(name=new_region_name, admin_id=current_user.id)
             self.database.session.add(new_region_in_db)
@@ -1005,17 +975,16 @@ class LoginDbHandler:
     # -----------------------------------
     # ---------- EINGANGSDATEN ----------
     # -----------------------------------
-
     def update_header_data_from_frontend(self, data):
         for region in data:
             self.region = Region.query.filter_by(name=region).first()
-            self.check_rights()
+            self.check_edit_rights()
             header = Header.query.filter_by(region=region).first()
             header.rainAmount, header.rainDuration = data[region]["amount"], data[region]["duration"]
         self.database.session.commit()
 
     def update_buildings_from_frontend(self, data):
-        self.check_rights()
+        self.check_edit_rights()
         db_objects = []
         for building in data:
             data_building = DataBuildings(region=self.region.name, region_id=self.region.id, id=int(building),
@@ -1032,16 +1001,15 @@ class LoginDbHandler:
     # ----------------------------------
     # ---------- MODELLIERUNG ----------
     # ----------------------------------
-
     def update_kataster_from_frontend(self, data):
-        self.check_rights()
+        self.check_edit_rights()
         for kataster in data:
             kataster_db = Kataster.query.filter_by(region=self.region.name).filter_by(id=kataster).first()
             kataster_db.additionalCost = data[kataster]["additionalCost"]
         self.database.session.commit()
 
     def update_auffangbecken_from_frontend(self, data):
-        self.check_rights()
+        self.check_edit_rights()
         for auffangbecken in self.region.auffangbecken:
             self.database.session.delete(auffangbecken)
         db_objects = []
@@ -1059,7 +1027,7 @@ class LoginDbHandler:
         self.database.session.commit()
 
     def update_leitgraeben_from_frontend(self, data):
-        self.check_rights()
+        self.check_edit_rights()
         for leitgraeben in self.region.leitgraeben:
             self.database.session.delete(leitgraeben)
         db_objects = []
@@ -1088,7 +1056,7 @@ class LoginDbHandler:
         db_objects = []
         for region in returned_data.keys():
             self.region = Region.query.filter_by(name=region).first()
-            self.check_rights()
+            self.check_edit_rights()
             OptimizationParameters.query.filter_by(region_id=self.region.id).delete()
             for param_id in returned_data[region].keys():
                 for param_name in returned_data[region][param_id].keys():
@@ -1101,7 +1069,7 @@ class LoginDbHandler:
         self.database.session.commit()
 
     def update_relevant_from_frontend(self, dataFromFrontend):
-        self.check_rights()
+        self.check_edit_rights()
         for nodeId in dataFromFrontend["Relevant"]:
             dgm_db = DGM25.query.filter_by(region_id=self.region.id).filter_by(id=nodeId).first()
             dgm_db.relevantForGraph = dataFromFrontend["Relevant"][nodeId]
@@ -1110,7 +1078,6 @@ class LoginDbHandler:
     # ----------------------------------
     # ---------- BERECHNUNGEN ----------
     # ----------------------------------
-
     def update_mit_massnahme(self):
         def compute_mit_massnahme(gridSize):
             all_buildings = self.read_buildings_for_display()
@@ -1257,10 +1224,8 @@ class LoginDbHandler:
                                         to_db_dict_1[(xutm_1, yutm_1)] = ("no", 1, "", self.region.name, xutm_1, yutm_1)
             return to_db_dict_1, to_db_dict_5
 
-        self.check_rights()
-        to_db25_as_dict = compute_to_db(25)
-        to_db5_as_dict = compute_to_db(5)
-        to_db1_as_dict = compute_to_db(1)
+        self.check_edit_rights()
+        to_db25_as_dict, to_db5_as_dict, to_db1_as_dict = compute_to_db(25), compute_to_db(5), compute_to_db(1)
 
         completed_dict_1, completed_dict_5 = compute_additional_to_db_for_5_and_1_dgm(to_db25_as_dict, to_db5_as_dict,
                                                                                       to_db1_as_dict)
@@ -1291,7 +1256,7 @@ class LoginDbHandler:
 
     def update_relevant_readjust_grid_size_at_buildings(self, nodes_with_buildings_25, nodes_with_massnahmen_25,
                                                         remember_buildings_25, water_height_in_25):
-        self.check_rights()
+        self.check_edit_rights()
         grid_data = self.read_grid_for_display()
         header_data = self.read_region_header()
         all_auffangbecken = self.read_auffangbecken()
@@ -1395,7 +1360,7 @@ class LoginDbHandler:
 
             return returned_data
 
-        self.check_rights()
+        self.check_edit_rights()
         grid_data = read_dgm25()
         header_data = self.read_region_header()
         all_auffangbecken = self.read_auffangbecken()
@@ -1570,7 +1535,7 @@ class LoginDbHandler:
                                                              remember_buildings_25, water_height_in_25)
 
     def compute_massnahmen_kataster(self):
-        self.check_rights()
+        self.check_edit_rights()
         all_kataster = self.read_kataster_for_display()
         all_kataster = all_kataster["Kataster"]
         all_auffangbecken = self.read_auffangbecken()
@@ -1601,22 +1566,20 @@ class LoginDbHandler:
         self.database.session.commit()
 
     def read_massnahmen_kataster(self):
-        data_from = MassnahmenKatasterMapping.query.filter_by(region=self.region.name).all()
         returned_array = []
-        for data in data_from:
+        for data in MassnahmenKatasterMapping.query.filter_by(region=self.region.name).all():
             returned_array.append(self.dict_to_array(self.db_object_to_dict(data)))
         return returned_array
 
     def compute_optimal_solution(self):
         def read_gefahrenklasse_threshold():
-            thresh_for_gefahr = GlobalForGefahrensklasse.query.all()
             threshold_for_gefahrenklasse_as_dict = dict()
-            for threshhold in thresh_for_gefahr:
+            for threshhold in GlobalForGefahrensklasse.query.all():
                 threshold_for_gefahrenklasse_as_dict[threshhold.gefahrenklasse] = threshhold.threshhold
             threshold_for_gefahrenklasse_as_dict[0] = 0.001
             return threshold_for_gefahrenklasse_as_dict
 
-        self.check_rights()
+        self.check_edit_rights()
         grid_data = self.read_grid_for_display()
         header_data = self.read_region_header()
         all_auffangbecken = self.read_auffangbecken()
@@ -1674,7 +1637,6 @@ class LoginDbHandler:
     # -------------------------------
     # ---------- LOESUNGEN ----------
     # -------------------------------
-
     def read_optimal_solution(self):
         solution_as_dict = dict()
         flooded_nodes_with_time_steps = dict()
@@ -1707,19 +1669,3 @@ class LoginDbHandler:
         solution_as_dict["flow_through_nodes"] = flow_through_nodes
         solution_as_dict["handlungsbedarf"] = handlungsbedarf
         return solution_as_dict
-
-    # ------------------------------
-    # ---------- LOESCHEN ----------
-    # ------------------------------
-
-    def delete_region(self):
-        if not self.region:
-            flash(f'Region {self.regionname} existiert nicht!', 'warning')
-            return redirect(request.url)
-        self.check_rights()
-        for db in [Header, Data, Solutions, DataBuildings, Kataster, Einzugsgebiete, Auffangbecken, Leitgraeben, DGM1,
-                   DGM5, DGM25, OptimizationParameters, MassnahmenKatasterMapping, ]:
-            db.query.filter_by(region=self.region.name).delete()
-        User_Region.query.filter_by(region_id=self.region.id).delete()
-        Region.query.filter_by(name=self.regionname).delete()
-        self.database.session.commit()

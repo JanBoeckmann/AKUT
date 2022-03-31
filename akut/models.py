@@ -65,7 +65,7 @@ class Messages(login_db.Model):
                    f'{str(self.date_associated)[0:9]} abgegeben! {self.text}'
         elif self.type == "Username geändert":
             return f'User "{user_name}" hat Ihren Namen am {str(self.date_associated)[0:9]} von "{self.text}" zu ' \
-                   f'"{User.query.filter_by(id=self.user_to_id).first().name}" geändert! '
+                   f'"{User.query.filter_by(id=self.user_to_id).first().username}" geändert! '
         elif self.type == "Regionenname geändert":
             return f'User "{user_name}" hat den Namen der Region "{self.text}" am ' \
                    f'{str(self.date_associated)[0:9]} zu "{region_name}" geändert!'
