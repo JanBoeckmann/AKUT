@@ -1,13 +1,11 @@
-from werkzeug.utils import secure_filename
-
 from flask import render_template, jsonify
 from flask_login import login_required, logout_user
+from flask_mail import Message
+from difflib import SequenceMatcher
+from werkzeug.utils import secure_filename
+
 from akut import app, LoginForm, RegistrationForm, folder, RequestResetForm, ResetPasswordForm, mail, extensions
 from akut.LoginDbHandler import *
-from akut.models import User, Region
-from difflib import SequenceMatcher
-
-from flask_mail import Message
 
 
 # -----------------------------------------
@@ -70,6 +68,9 @@ def logout():
 @app.route("/account", methods=['GET', 'POST'])
 @login_required
 def account():
+    if current_user == User.query.filter_by(username='admin').first():
+        return redirect(url_for('panel'))
+
     my_login_handler = LoginDbHandler(None)
     if current_user.messages_recieved:
         my_login_handler.show_messages()
@@ -336,7 +337,7 @@ def copy_region_process():
             my_database_handler = LoginDbHandler(dataset["from"])
             my_database_handler.copy_region_to(dataset["to"])
             return jsonify(
-                {'success': 'Die Daten wurden erfolgreich in die Datenbank kopiert am ' + str(datetime.datetime.now())})
+                {'success': 'Die Daten wurden erfolgreich in die Datenbank kopiert am ' + str(datetime.now())})
     return jsonify({'error': 'Something Went Wrong!'})
 
 
@@ -366,7 +367,7 @@ def modify_header_data_save_to_database_process():
             my_database_handler.update_header_data_from_frontend(returned_data)
             json_to_return_to_frontend = jsonify({
                 'success': 'Die Daten wurden erfolgreich in die Datenbank geschrieben. Ende des Prozesses: ' + str(
-                    datetime.datetime.now())})
+                    datetime.now())})
             return json_to_return_to_frontend
     return jsonify({'error': 'Something Went Wrong!'})
 
@@ -408,7 +409,7 @@ def modify_buildings_save_to_database_process():
             my_database_handler.update_buildings_from_frontend(returned_data["Buildings"])
             json_to_return_to_frontend = jsonify({
                 'success': 'Die Daten wurden erfolgreich in die Datenbank geschrieben. Ende des Prozesses: ' + str(
-                    datetime.datetime.now())})
+                    datetime.now())})
             return json_to_return_to_frontend
     return jsonify({'error': 'Something Went Wrong!'})
 
@@ -452,7 +453,7 @@ def modify_kataster_save_to_database_process():
             my_database_handler.update_kataster_from_frontend(returned_data["Kataster"])
             json_to_return_to_frontend = jsonify({
                 'success': 'Die Daten wurden erfolgreich in die Datenbank geschrieben. Ende des Prozesses: ' + str(
-                    datetime.datetime.now())})
+                    datetime.now())})
             return json_to_return_to_frontend
     return jsonify({'error': 'Something Went Wrong!'})
 
@@ -495,7 +496,7 @@ def modify_graph_save_to_database_process():
             my_database_handler.update_leitgraeben_from_frontend(returned_data["Leitgraeben"])
             json_to_return_to_frontend = jsonify({
                 'success': 'Die Daten wurden erfolgreich in die Datenbank geschrieben. Ende des Prozesses: ' + str(
-                    datetime.datetime.now())})
+                    datetime.now())})
             return json_to_return_to_frontend
     return jsonify({'error': 'Something Went Wrong!'})
 
@@ -525,7 +526,7 @@ def modify_optimization_parameters_save_to_database_process():
             my_database_handler.update_optimization_parameters_from_frontend(returned_data)
             json_to_return_to_frontend = jsonify({
                 'success': 'Die Daten wurden erfolgreich in die Datenbank geschrieben. Ende des Prozesses: ' + str(
-                    datetime.datetime.now())})
+                    datetime.now())})
             return json_to_return_to_frontend
     return jsonify({'error': 'Something Went Wrong!'})
 
@@ -569,7 +570,7 @@ def show_grid_save_to_database_process():
             my_database_handler.update_relevant_from_frontend(returned_data)
             json_to_return_to_frontend = jsonify({
                 'success': 'Die Daten wurden erfolgreich in die Datenbank geschrieben. Ende des Prozesses: ' + str(
-                    datetime.datetime.now())})
+                    datetime.now())})
             return json_to_return_to_frontend
     return jsonify({'error': 'Something Went Wrong!'})
 

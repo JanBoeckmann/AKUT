@@ -1,21 +1,21 @@
 import csv
-from datetime import datetime
 import json
 import utm
 import fiona
+import zipfile
 import xml.etree.ElementTree as Et
 
+from datetime import datetime
 from flask import url_for, redirect, flash, abort, request
 from flask_login import current_user, login_user
 from shapely.geometry import Polygon, LineString
 from sqlalchemy.orm import make_transient
 
-from akut.instanceGraph import *
-from akut.instanceGraphForDGM25 import *
-import zipfile
-from akut import login_db, User_Region, Region, User, Message, GlobalToAkteur, GlobalToSchadensklasse, \
+from akut.instanceGraph import instanceGraph
+from akut.instanceGraphForDGM25 import instanceGraphForDGM25
+from akut import login_db, User_Region, Region, User, Messages, GlobalToAkteur, GlobalToSchadensklasse, \
     GlobalForGefahrensklasse, DGM1, DGM5, DGM25, Auffangbecken, Data, DataBuildings, Einzugsgebiete, Header, Kataster, \
-    Leitgraeben, MassnahmenKatasterMapping, OptimizationParameters, Solutions, bcrypt
+    Leitgraeben, MassnahmenKatasterMapping, OptimizationParameters, Solutions, bcrypt, os
 
 
 class LoginDbHandler:
@@ -88,8 +88,8 @@ class LoginDbHandler:
             return redirect(url_for('account'))
         self.region.users.append(User_Region(user=user_manage, provided_by_id=current_user.id))
         flash(f'"{self.region.name}" freigegeben für {user_manage.username}!', 'success')
-        message = Message(user_to_id=user_manage.id, user_from_id=current_user.id, region_id=self.region.id,
-                          type="Freigegeben")
+        message = Messages(user_to_id=user_manage.id, user_from_id=current_user.id, region_id=self.region.id,
+                           type="Freigegeben")
         self.database.session.add(message)
         self.database.session.commit()
 
@@ -100,8 +100,8 @@ class LoginDbHandler:
             return redirect(url_for('account'))
         self.region.admin_id = user_manage.id
         flash(f'Admin von "{self.region.name}" abgegeben an "{user_manage.username}"!', 'success')
-        message = Message(user_to_id=user_manage.id, user_from_id=current_user.id, region_id=self.region.id,
-                          type="Admin abgegeben")
+        message = Messages(user_to_id=user_manage.id, user_from_id=current_user.id, region_id=self.region.id,
+                           type="Admin abgegeben")
         self.database.session.add(message)
         self.database.session.commit()
 
@@ -308,7 +308,7 @@ class LoginDbHandler:
             message.user_from_id = User.query.filter_by(username="admin").first().id
             message.text.append(" Der entsprechende User existiert nicht mehr!")
         # Entferne empfangene Messages
-        Message.query.filter_by(user_to_id=user.id).delete()
+        Messages.query.filter_by(user_to_id=user.id).delete()
         # Entferne User
         self.database.session.query(User).filter(User.username == user.username).delete()
         self.database.session.commit()
@@ -671,7 +671,7 @@ class LoginDbHandler:
         print(f'Polygon.centroid.x: {einzugsgebiete_polygon.centroid.x}')
         # add Header
         header = Header(region=self.region.name, region_id=self.region.id, uploaded=1,
-                        date_uploaded=datetime.datetime.now(), solved=0,
+                        date_uploaded=datetime.now(), solved=0,
                         data_solved='not solved', timeHorizon=0, gridSize=1, rainAmount=126.5, rainDuration=60,
                         center_lat=einzugsgebiete_polygon.centroid.x, center_lon=einzugsgebiete_polygon.centroid.y)
         db_object_array.append(header)
@@ -1242,7 +1242,7 @@ class LoginDbHandler:
         completed_dict_1, completed_dict_5 = compute_additional_to_db_for_5_and_1_dgm(to_db25_as_dict, to_db5_as_dict,
                                                                                       to_db1_as_dict)
 
-        print("Start updating database at " + str(datetime.datetime.now()))
+        print("Start updating database at " + str(datetime.now()))
         for db in [DGM1, DGM5, DGM25]:
             dgm = db.query.filter_by(region=self.region.name).all()
             for d in dgm:
@@ -1264,7 +1264,7 @@ class LoginDbHandler:
                     db_object.relevantForGraph = value[1]
                     db_object.massnahmenOnNode = value[2]
         self.database.session.commit()
-        print("End updating database at " + str(datetime.datetime.now()))
+        print("End updating database at " + str(datetime.now()))
 
     def update_relevant_readjust_grid_size_at_buildings(self, nodes_with_buildings_25, nodes_with_massnahmen_25,
                                                         remember_buildings_25, water_height_in_25):
@@ -1535,7 +1535,7 @@ class LoginDbHandler:
                 entry_25 = DGM25.query.filter_by(region=self.region.name, xutm=array[i][4], yutm=array[i][5]).first()
                 if entry:
                     entry_25.relevantForGraph, entry_25.connectedToRelevantNodes, entry_25.resolveFurther, \
-                        entry_25.willBeInGraph = array[i][0], array[i][1], array[i][2], array[i][3]
+                    entry_25.willBeInGraph = array[i][0], array[i][1], array[i][2], array[i][3]
             else:
                 entry = db.query.filter_by(region=self.region.name, xutm=array[i][2], yutm=array[i][3]).first()
                 if entry:
@@ -1552,7 +1552,7 @@ class LoginDbHandler:
         all_kataster = all_kataster["Kataster"]
         all_auffangbecken = self.read_auffangbecken()
         all_leitgraeben = self.read_leitgraeben()
-        print("Start computing massnahmen kataster", datetime.datetime.now())
+        print("Start computing massnahmen kataster", datetime.now())
         MassnahmenKatasterMapping.query.filter_by(region=self.region.name).delete()
         for kataster in all_kataster:
             einzugsgebiete_polygon = Polygon(all_kataster[kataster]["position"])
@@ -1574,7 +1574,7 @@ class LoginDbHandler:
                                                                            massnahmeId=leitgraben,
                                                                            katasterId=kataster)
                     self.database.session.add(massnahme_kataster_mapping)
-        print("End computing massnahmen kataster", datetime.datetime.now())
+        print("End computing massnahmen kataster", datetime.now())
         self.database.session.commit()
 
     def read_massnahmen_kataster(self):
@@ -1615,9 +1615,9 @@ class LoginDbHandler:
         all_kataster = self.read_kataster_for_display()
         all_kataster = all_kataster["Kataster"]
         flooded_nodes, water_height, auffangbecken_solution, leitgraeben_solution, flow_through_nodes_for_db, \
-            handlungsbedarf = grid_instance_graph.callIPWithEquilibriumWaterLevels(
-                graph_for_ip, initialinitial_solutionolution, optimization_parameters, threshold_for_gefahrenklasse,
-                massnahmen_kataster, all_kataster)
+        handlungsbedarf = grid_instance_graph.callIPWithEquilibriumWaterLevels(
+            graph_for_ip, initialinitial_solutionolution, optimization_parameters, threshold_for_gefahrenklasse,
+            massnahmen_kataster, all_kataster)
 
         to_db = []
         for timeStep in flooded_nodes:
@@ -1641,7 +1641,7 @@ class LoginDbHandler:
 
         Solutions.query.filter_by(region=self.region.name).delete()
         header = Header.query.filter_by(region=self.region.name).first()
-        header.solved, header.data_solved = 1, str((datetime.datetime.now()))
+        header.solved, header.data_solved = 1, str((datetime.now()))
         for entry in to_db:
             solution = Solutions(region=entry[0], variableName=entry[1], timeStep=entry[2], id=entry[3],
                                  nodeXCoord=entry[3], nodeYCoord=entry[4], variableValue=entry[5])

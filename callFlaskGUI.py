@@ -8,7 +8,7 @@ if __name__ == "__main__":
 
 """
 TODOs:
-0.) Refactoring
+0.) Refactoring Routes & DB-Handler
 1.) Berechnungen:
     2: Key-Error instanceGraph
     4: Überprüfen

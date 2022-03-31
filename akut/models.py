@@ -31,7 +31,7 @@ class User_Region(login_db.Model):
     provided_by_id = login_db.Column(login_db.Integer, login_db.ForeignKey('user.id'), default=None)
 
 
-class Message(login_db.Model):
+class Messages(login_db.Model):
     id = login_db.Column(login_db.Integer, primary_key=True)
     user_to_id = login_db.Column(login_db.Integer, login_db.ForeignKey('user.id'), nullable=False)
     user_from_id = login_db.Column(login_db.Integer, login_db.ForeignKey('user.id'), nullable=False)
@@ -67,9 +67,9 @@ class User(login_db.Model, UserMixin):
                                     cascade='all, delete', lazy=True)
     provided = login_db.relationship('User_Region', backref='provider', foreign_keys=User_Region.provided_by_id,
                                      lazy=True)
-    messages_recieved = login_db.relationship('Message', backref='recipient', foreign_keys=Message.user_to_id,
+    messages_recieved = login_db.relationship('Messages', backref='recipient', foreign_keys=Messages.user_to_id,
                                               lazy=True)
-    messages_sent = login_db.relationship('Message', backref='transmitter', foreign_keys=Message.user_from_id,
+    messages_sent = login_db.relationship('Messages', backref='transmitter', foreign_keys=Messages.user_from_id,
                                           lazy=True)
 
     def get_reset_token(self, expires_sec=1800):
@@ -95,7 +95,7 @@ class Region(login_db.Model):
     users = login_db.relationship('User_Region', backref='region', cascade='all, delete', lazy=True)
     admin_id = login_db.Column(login_db.Integer, login_db.ForeignKey('user.id'), default=None)
 
-    messages = login_db.relationship('Message', backref='region', lazy=True)
+    messages = login_db.relationship('Messages', backref='region', lazy=True)
     dgm1s = login_db.relationship('DGM1', backref='region_dgm1s', lazy=True)
     dgm5s = login_db.relationship('DGM5', backref='region_dgm5s', lazy=True)
     dgm25s = login_db.relationship('DGM25', backref='region_dgm25s', lazy=True)
