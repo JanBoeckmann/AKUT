@@ -52,3 +52,5 @@ werkzeug~=2.0.2
 networkx~=2.6.3
 numpy~=1.21.2
 matplotlib~=3.4.3
+pyvis~=0.1.9
+gurobipy

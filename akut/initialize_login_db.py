@@ -1,4 +1,5 @@
-from akut import User_Region, Region, User, login_db, bcrypt
+from akut.models import User_Region, Region, User
+from akut import login_db, bcrypt
 
 login_db.drop_all()
 login_db.create_all()

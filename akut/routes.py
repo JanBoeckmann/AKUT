@@ -1,11 +1,18 @@
-from flask import render_template, jsonify
-from flask_login import login_required, logout_user
+import json
+import os
+
+from datetime import datetime
+from flask import render_template, jsonify, url_for, request, flash, abort
+from flask_login import login_required, logout_user, current_user
 from flask_mail import Message
 from difflib import SequenceMatcher
-from werkzeug.utils import secure_filename
 
-from akut import app, LoginForm, RegistrationForm, folder, RequestResetForm, ResetPasswordForm, mail, extensions
-from akut.LoginDbHandler import *
+from werkzeug.utils import secure_filename, redirect
+
+from akut.forms import RegistrationForm, LoginForm, RequestResetForm, ResetPasswordForm
+from akut.models import Region, User
+from akut.LoginDbHandler import LoginDbHandler
+from akut import app, folder, mail, extensions, bcrypt
 
 
 # -----------------------------------------
@@ -164,6 +171,8 @@ def check_for_admin_user():
 def panel():
     check_for_admin_user()
     my_login_db_handler = LoginDbHandler(None)
+    if current_user.messages_recieved:
+        my_login_db_handler.show_messages()
     all_regions_dict = my_login_db_handler.get_all_information(Region, 'name')
     all_users_dict = my_login_db_handler.get_all_information(User, 'username')
     return render_template("routes/adminpanel.html", region_info=all_regions_dict, user_info=all_users_dict)

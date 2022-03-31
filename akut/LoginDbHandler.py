@@ -3,6 +3,7 @@ import json
 import utm
 import fiona
 import zipfile
+import os
 import xml.etree.ElementTree as Et
 
 from datetime import datetime
@@ -13,9 +14,10 @@ from sqlalchemy.orm import make_transient
 
 from akut.instanceGraph import instanceGraph
 from akut.instanceGraphForDGM25 import instanceGraphForDGM25
-from akut import login_db, User_Region, Region, User, Messages, GlobalToAkteur, GlobalToSchadensklasse, \
+from akut.models import User_Region, Region, User, Messages, GlobalToAkteur, GlobalToSchadensklasse, \
     GlobalForGefahrensklasse, DGM1, DGM5, DGM25, Auffangbecken, Data, DataBuildings, Einzugsgebiete, Header, Kataster, \
-    Leitgraeben, MassnahmenKatasterMapping, OptimizationParameters, Solutions, bcrypt, os
+    Leitgraeben, MassnahmenKatasterMapping, OptimizationParameters, Solutions
+from akut import login_db, bcrypt
 
 
 class LoginDbHandler:
@@ -51,8 +53,12 @@ class LoginDbHandler:
 
     def show_messages(self):
         for message in self.user.messages_recieved:
-            if print(message) is not 'Ignore Message':
-                flash(message, 'info')
+            if message.region_id:  # Filtere Gelöschte Region
+                region = Region.query.filter_by(id=message.region_id).first()
+                if not region:
+                    self.database.session.delete(message)
+                    continue
+            flash(message, 'info')
             self.database.session.delete(message)
         self.database.session.commit()
 
@@ -202,23 +208,30 @@ class LoginDbHandler:
                 flash(f'Region mit Namen "{returned_data_dict["name"]}" existiert bereits! Bitte anderen Namen wählen!',
                       'info')
                 return False
-        # Init Änderungen
         changed = False
         self.region = Region.query.filter_by(id=int(returned_data_dict["region_id"])).first()
         self.regionname = self.region.name
+        admin_user = User.query.filter_by(username='admin').first()
+
         # Name
         if not returned_data_dict["name"] == self.region.name:
             changed = True
             self.copy_region_to(returned_data_dict["name"])
             self.delete_region()
+            old_name = self.region.name
             self.region = Region.query.filter_by(name=returned_data_dict["name"]).first()
+            for user in self.region.users:
+                self.database.session.add(
+                    Messages(user_to_id=user.user_id, user_from_id=admin_user.id, region_id=self.region.id,
+                             type="Regionenname geändert", text=f"{old_name}"))
         # Admin
         new_admin_user = User.query.filter_by(username=returned_data_dict["change_admin"]).first()
         if not new_admin_user.id == self.region.admin_id:
             changed = True
-            print(new_admin_user.admin_regions)
             self.region.admin_id = new_admin_user.id
-            print(new_admin_user.admin_regions)
+            self.database.session.add(
+                Messages(user_to_id=new_admin_user.id, user_from_id=admin_user.id, region_id=self.region.id,
+                         type="Admin abgegeben"))
         # User entfernen
         for user in returned_data_dict["remove_user[]"]:
             if not user == returned_data_dict["change_admin"]:  # Um nicht auf einmal neuen admin & direkt entfernen
@@ -226,6 +239,9 @@ class LoginDbHandler:
                 if user_id:
                     changed = True
                     User_Region.query.filter_by(region_id=self.region.id).filter_by(user_id=user_id).delete()
+                    self.database.session.add(
+                        Messages(user_to_id=user_id, user_from_id=admin_user.id, region_id=self.region.id,
+                                 type="Entfernt"))
             else:
                 flash('Neuer Admin der Region kann nicht entfernt werden', 'warning')
         # User hinzufügen
@@ -234,6 +250,9 @@ class LoginDbHandler:
             if user_id:
                 changed = True
                 self.database.session.add(User_Region(user_id=user_id, region_id=self.region.id))
+                self.database.session.add(
+                    Messages(user_to_id=user_id, user_from_id=admin_user.id, region_id=self.region.id,
+                             type="Freigegeben"))
         # Commit/Flash
         if changed:
             self.database.session.commit()
@@ -255,23 +274,34 @@ class LoginDbHandler:
                 return False
         changed = False
         user_obj = User.query.filter_by(id=returned_data_dict["user_id"]).first()
+        admin_user = User.query.filter_by(username='admin').first()
 
         # Name
         if not returned_data_dict["name"] == user_obj.username:
             changed = True
+            old_name = user_obj.username
             user_obj.username = returned_data_dict["name"]
+            self.database.session.add(
+                Messages(user_to_id=user_obj.id, user_from_id=admin_user.id, region_id=None,
+                         type="Username geändert", text=f"{old_name}"))
         # Region entfernen
         for region in returned_data_dict["remove_region[]"]:
             region_id = Region.query.filter_by(name=region).first().id
             if region_id:
                 changed = True
                 User_Region.query.filter_by(region_id=region_id).filter_by(user_id=user_obj.id).delete()
+                self.database.session.add(
+                    Messages(user_to_id=user_obj.id, user_from_id=admin_user.id, region_id=region_id,
+                             type="Entfernt"))
         # Region hinzufügen
         for region in returned_data_dict["insert_region[]"]:
             region_id = Region.query.filter_by(name=region).first().id
             if region_id:
                 changed = True
                 self.database.session.add(User_Region(user_id=user_obj.id, region_id=region_id))
+                self.database.session.add(
+                    Messages(user_to_id=user_obj.id, user_from_id=admin_user.id, region_id=region_id,
+                             type="Freigegeben"))
         # Commit/Flash
         if changed:
             self.database.session.commit()
@@ -294,23 +324,16 @@ class LoginDbHandler:
         # Gebe Admin ab
         admin_region_list = Region.query.filter_by(admin_id=user.id).all()
         for admR in admin_region_list:
-            if not list(admR.users) == []:
+            if not list(admR.users) == []:  # Dem ersten user den admin geben
                 admR.admin_id = admR.users[0].user_id
-            else:
+            else:  # Dem admin die Region freigeben und ihm den admin geben
                 admin_user = User.query.filter_by(username="admin").first()
                 self.database.session.add(User_Region(region_id=admR.id, user_id=admin_user.id))
                 admR.admin_id = admin_user.id
-        # Passe Gesendete Messages an
-        user_messages_sent = user.messages_sent
-        for message in user_messages_sent:
-            if message is None:
-                continue
-            message.user_from_id = User.query.filter_by(username="admin").first().id
-            message.text.append(" Der entsprechende User existiert nicht mehr!")
         # Entferne empfangene Messages
         Messages.query.filter_by(user_to_id=user.id).delete()
         # Entferne User
-        self.database.session.query(User).filter(User.username == user.username).delete()
+        User.query.filter_by(id=user.id).delete()
         self.database.session.commit()
         print(f"deleted {user.username}")
 

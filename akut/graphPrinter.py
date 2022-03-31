@@ -1,6 +1,6 @@
 import networkx as nx
 from pyvis.network import Network
-import networkx as nx
+
 
 class GraphPrinter:
     def __init__(self, graph_works_filename, graph_fail_filename):
@@ -8,7 +8,7 @@ class GraphPrinter:
         self.graph_fail = self._read_graph_from_file(graph_fail_filename)
 
     def _read_graph_from_file(self, filename):
-        return nx.read_edgelist(filename, create_using= nx.DiGraph())
+        return nx.read_edgelist(filename, create_using=nx.DiGraph())
 
     def print_graph_works(self, visualization_size_x, visualization_size_y, filename):
         net = Network(visualization_size_x, visualization_size_y, directed=True)
@@ -40,7 +40,6 @@ class GraphPrinter:
             n["x"] = (x - xmin) * 10
             n["y"] = (y - ymin) * 10
             n["label"] = " "
-
 
         # net = self._adjust_positions(net)
 
@@ -85,7 +84,6 @@ class GraphPrinter:
             n["x"] = (x - xmin) * 10
             n["y"] = (y - ymin) * 10
             n["label"] = " "
-
 
             if n["id"] in remember_works_node_names:
                 n["group"] = "same"

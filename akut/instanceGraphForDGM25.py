@@ -1,6 +1,5 @@
-import networkx as nx
 import numpy as np
-from akut.ipEquilibriumWaterLevels import *
+
 from akut.linearEquationSolverForFlows import *
 
 '''

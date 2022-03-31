@@ -1,13 +1,16 @@
+import operator
+import datetime
 import gurobipy as gurobi
 import networkx as nx
-import operator
 import matplotlib as plt
-import datetime
-import os
+
 from akut.graphSaver import GraphSaver
 
+
 class ipEquilibriumWaterLevels:
-    def __init__(self, ratios, geodesicHeight, area, timeSteps, rain, massnahmenOnNode, allAuffangbecken, allLeitgraeben, all_buildings, optimization_parameters, initialSolution, threshold_for_gefahrenklasse, massnahmen_kataster, all_kataster):
+    def __init__(self, ratios, geodesicHeight, area, timeSteps, rain, massnahmenOnNode, allAuffangbecken,
+                 allLeitgraeben, all_buildings, optimization_parameters, initialSolution, threshold_for_gefahrenklasse,
+                 massnahmen_kataster, all_kataster):
         print("started: " + str(datetime.datetime.now()))
         self.ratios = ratios
         self.geodesicHeight = geodesicHeight
@@ -37,7 +40,7 @@ class ipEquilibriumWaterLevels:
         if "genauigkeitDerGeodaetischenHoeheIncm" in self.optimization_parameters:
             self.compound_exactness = self.optimization_parameters["genauigkeitDerGeodaetischenHoeheIncm"] / 100
         else:
-            self.compound_exactness = 0.05 #in Meters
+            self.compound_exactness = 0.05  # in Meters
         # print("compute compounded graph")
         self.cc_graph, self.cc_area, self.cc_geodesic_height, self.cc_ratios, self.connected_components_as_mapping_with_representation, self.mapping_representator_per_node = self.compute_compounded_graph()
         # print(self.cc_ratios)
@@ -53,7 +56,6 @@ class ipEquilibriumWaterLevels:
         print("solved: " + str(datetime.datetime.now()))
         self.print_outputs()
 
-
     def print_outputs(self):
         print("Anzahl der Gebäude:", len(self.all_buildings))
         print("Fläche aller Knoten:", sum(self.cc_area.values()))
@@ -61,7 +63,7 @@ class ipEquilibriumWaterLevels:
         print("Anzahl der Knoten nach concatenate: ", self.cc_graph.number_of_nodes())
         print("Fläche des source node:", self.cc_area[(-1, -1)])
         heights = list(self.cc_geodesic_height.values())
-        heights.remove(max(heights)) #remove height of (-1, -1)
+        heights.remove(max(heights))  # remove height of (-1, -1)
         print("Maximaler Höhenunterschied aller Knoten außer source node:", max(heights) - min(heights))
         print("Anazhl der Knoten vor concatenate: ", self.originalGraph.number_of_nodes())
 
@@ -142,7 +144,8 @@ class ipEquilibriumWaterLevels:
 
         def compute_connected_components():
             nodes_paired_after_same_combination_of_massnahmen = split_up_into_groups_of_massnahmen()
-            print("length of nodes_paired_after_same_combination_of_massnahmen:", len(nodes_paired_after_same_combination_of_massnahmen))
+            print("length of nodes_paired_after_same_combination_of_massnahmen:",
+                  len(nodes_paired_after_same_combination_of_massnahmen))
             connected_components = []
             for comb in nodes_paired_after_same_combination_of_massnahmen:
                 nodes_grouped_by_geodesic_height = dict()
@@ -200,13 +203,12 @@ class ipEquilibriumWaterLevels:
                 cc_graph.add_edge(*(e[1], e[0]))
                 cc_ratios[(e[1], e[0])] = cc_ratios[e]
 
-
         connected_components = compute_connected_components()
         connected_components_as_mapping_with_representation = connected_components_to_mapping()
 
         # print("test1")
 
-        mapping_representator_per_node =dict()
+        mapping_representator_per_node = dict()
         for representator_node, rest_of_cc in connected_components_as_mapping_with_representation.items():
             for n in rest_of_cc:
                 mapping_representator_per_node[n] = representator_node
@@ -221,10 +223,10 @@ class ipEquilibriumWaterLevels:
         # print("test3")
         print(len(connected_components_as_mapping_with_representation))
 
-        #merge nodes in cc_graph, adjust area and geodesic height
+        # merge nodes in cc_graph, adjust area and geodesic height
         i = 0
         for representator_node, rest_of_cc in connected_components_as_mapping_with_representation.items():
-            i = i+1
+            i = i + 1
             # print(i)
             for n in rest_of_cc:
                 cc_graph = nx.contracted_nodes(cc_graph, representator_node, n, self_loops=False)
@@ -232,7 +234,8 @@ class ipEquilibriumWaterLevels:
                 if n != representator_node:
                     del cc_area[n]
                     del cc_geodesic_height[n]
-            cc_geodesic_height[representator_node] = self.myround(cc_geodesic_height[representator_node], self.compound_exactness)
+            cc_geodesic_height[representator_node] = self.myround(cc_geodesic_height[representator_node],
+                                                                  self.compound_exactness)
 
         # print("test4")
 
@@ -248,7 +251,8 @@ class ipEquilibriumWaterLevels:
             else:
                 new_end_node = original_end_node
             if (new_start_node, new_end_node) in cc_ratios:
-                cc_ratios[(new_start_node, new_end_node)] = cc_ratios[(new_start_node, new_end_node)] + self.ratios[(original_start_node, original_end_node)]
+                cc_ratios[(new_start_node, new_end_node)] = cc_ratios[(new_start_node, new_end_node)] + self.ratios[
+                    (original_start_node, original_end_node)]
             else:
                 cc_ratios[(new_start_node, new_end_node)] = self.ratios[(original_start_node, original_end_node)]
 
@@ -334,113 +338,150 @@ class ipEquilibriumWaterLevels:
             return totalArea
 
         def declareVariables():
-            #flows
+            # flows
             for e in self.extendedGraph.edges:
                 for t in range(1, self.timeSteps + 1):
-                    flows[e, t] = myModel.addVar(lb=0.0, vtype=gurobi.GRB.CONTINUOUS, name="f_" + str(e[0]) + "_" + str(e[1]) + "^" + str(t))
+                    flows[e, t] = myModel.addVar(lb=0.0, vtype=gurobi.GRB.CONTINUOUS,
+                                                 name="f_" + str(e[0]) + "_" + str(e[1]) + "^" + str(t))
 
-            #excess
+            # excess
             for n in self.extendedGraph.nodes:
                 for t in range(1, self.timeSteps + 1):
-                    excess[n, t] = myModel.addVar(lb=0.0, vtype=gurobi.GRB.CONTINUOUS, name="F_" + str(n) + "^" + str(t))
+                    excess[n, t] = myModel.addVar(lb=0.0, vtype=gurobi.GRB.CONTINUOUS,
+                                                  name="F_" + str(n) + "^" + str(t))
 
-            #waterHeight
+            # waterHeight
             for n in self.extendedGraph.nodes:
                 for t in range(0, self.timeSteps + 1):
-                    waterHeight[n, t] = myModel.addVar(lb=0.0, vtype=gurobi.GRB.CONTINUOUS, name="h_" + str(n) + "^" + str(t))
+                    waterHeight[n, t] = myModel.addVar(lb=0.0, vtype=gurobi.GRB.CONTINUOUS,
+                                                       name="h_" + str(n) + "^" + str(t))
 
-            #waterAmount
+            # waterAmount
             for n in self.extendedGraph.nodes:
                 for t in range(0, self.timeSteps + 1):
-                    waterAmount[n, t] = myModel.addVar(lb=0.0, vtype=gurobi.GRB.CONTINUOUS, name="y_" + str(n) + "^" + str(t))
+                    waterAmount[n, t] = myModel.addVar(lb=0.0, vtype=gurobi.GRB.CONTINUOUS,
+                                                       name="y_" + str(n) + "^" + str(t))
 
             # flooded Nodes
             for n in self.extendedGraph.nodes:
                 for t in range(0, self.timeSteps + 1):
                     floodedNodes[n, t] = myModel.addVar(vtype=gurobi.GRB.BINARY, name="x_" + str(n) + "^" + str(t))
 
-            #activeArc
+            # activeArc
             for e in self.extendedGraph.edges:
                 for t in range(1, self.timeSteps + 1):
-                    activeArc[e, t] = myModel.addVar(vtype=gurobi.GRB.BINARY, name="a_" + str(e[0]) + "_" + str(e[1]) + "^" + str(t))
+                    activeArc[e, t] = myModel.addVar(vtype=gurobi.GRB.BINARY,
+                                                     name="a_" + str(e[0]) + "_" + str(e[1]) + "^" + str(t))
 
-            #fullArc
+            # fullArc
             for e in self.cc_graph.edges:
                 for t in range(1, self.timeSteps + 1):
-                    fullArc[e, t] = myModel.addVar(vtype=gurobi.GRB.BINARY, name="gamma_" + str(e[0]) + "_" + str(e[1]) + "^" + str(t))
+                    fullArc[e, t] = myModel.addVar(vtype=gurobi.GRB.BINARY,
+                                                   name="gamma_" + str(e[0]) + "_" + str(e[1]) + "^" + str(t))
 
-            #deactivateArc
+            # deactivateArc
             for e in removableEdges:
                 for t in range(1, self.timeSteps + 1):
-                    deactivateArc[e, t] = myModel.addVar(vtype=gurobi.GRB.BINARY, name="d_" + str(e[0]) + "_" + str(e[1]) + "^" + str(t))
+                    deactivateArc[e, t] = myModel.addVar(vtype=gurobi.GRB.BINARY,
+                                                         name="d_" + str(e[0]) + "_" + str(e[1]) + "^" + str(t))
 
-            #decisionVariableForAuffangbecken
+            # decisionVariableForAuffangbecken
             for auffangbeckenId in self.allAuffangbecken:
-                decisionAuffangbecken[auffangbeckenId] = myModel.addVar(vtype=gurobi.GRB.BINARY, name="auffangbecken_" + str(auffangbeckenId))
+                decisionAuffangbecken[auffangbeckenId] = myModel.addVar(vtype=gurobi.GRB.BINARY,
+                                                                        name="auffangbecken_" + str(auffangbeckenId))
 
-            #decisionVariableForLeitgraeben
+            # decisionVariableForLeitgraeben
             for leitgrabenId in self.allLeitgraeben:
-                decisionLeitgraben[leitgrabenId] = myModel.addVar(vtype=gurobi.GRB.BINARY, name="leitgraben_" + str(leitgrabenId))
+                decisionLeitgraben[leitgrabenId] = myModel.addVar(vtype=gurobi.GRB.BINARY,
+                                                                  name="leitgraben_" + str(leitgrabenId))
 
             # height_difference_through_auffangbecken
             for auffangbeckenId in self.allAuffangbecken:
-                height_difference_through_auffangbecken[auffangbeckenId] = myModel.addVar(lb=-gurobi.GRB.INFINITY, vtype=gurobi.GRB.CONTINUOUS, name="height_difference_through_auffangbecken_" + str(auffangbeckenId))
+                height_difference_through_auffangbecken[auffangbeckenId] = myModel.addVar(lb=-gurobi.GRB.INFINITY,
+                                                                                          vtype=gurobi.GRB.CONTINUOUS,
+                                                                                          name="height_difference_through_auffangbecken_" + str(
+                                                                                              auffangbeckenId))
 
             # height_difference_through_leitgraben
             for leitgrabenId in self.allLeitgraeben:
-                height_difference_through_leitgraben[leitgrabenId] = myModel.addVar(lb=-gurobi.GRB.INFINITY, vtype=gurobi.GRB.CONTINUOUS, name="height_difference_through_leitgraben_" + str(leitgrabenId))
+                height_difference_through_leitgraben[leitgrabenId] = myModel.addVar(lb=-gurobi.GRB.INFINITY,
+                                                                                    vtype=gurobi.GRB.CONTINUOUS,
+                                                                                    name="height_difference_through_leitgraben_" + str(
+                                                                                        leitgrabenId))
 
-            #geodesicHeightAsVariable
+            # geodesicHeightAsVariable
             for n in self.extendedGraph.nodes:
                 geodesicHeightAsVariable[n] = myModel.addVar(vtype=gurobi.GRB.CONTINUOUS, name="g_" + str(n))
 
-            #vertiefung
+            # vertiefung
             for n in self.extendedGraph.nodes:
                 vertiefung[n] = myModel.addVar(vtype=gurobi.GRB.BINARY, name="vertiefung_" + str(n))
 
             # maximum_geodesic_height_on_node
             for n in self.extendedGraph.nodes:
-                maximum_geodesic_height_on_node[n] = myModel.addVar(vtype=gurobi.GRB.CONTINUOUS, name="maximum_geodesic_height_on_node_" + str(n))
+                maximum_geodesic_height_on_node[n] = myModel.addVar(vtype=gurobi.GRB.CONTINUOUS,
+                                                                    name="maximum_geodesic_height_on_node_" + str(n))
 
             # minimum_geodesic_height_on_node
             for n in self.extendedGraph.nodes:
-                minimum_geodesic_height_on_node[n] = myModel.addVar(lb=-gurobi.GRB.INFINITY, vtype=gurobi.GRB.CONTINUOUS, name="minimum_geodesic_height_on_node_" + str(n))
+                minimum_geodesic_height_on_node[n] = myModel.addVar(lb=-gurobi.GRB.INFINITY,
+                                                                    vtype=gurobi.GRB.CONTINUOUS,
+                                                                    name="minimum_geodesic_height_on_node_" + str(n))
 
-            #binary help variable for using indicator constraints for flow distribution
+            # binary help variable for using indicator constraints for flow distribution
             for e in self.extendedGraph.edges:
                 for t in range(1, self.timeSteps + 1):
-                    binaryHelpForFlowDistribution[e, t] = myModel.addVar(vtype=gurobi.GRB.BINARY, name="helpFlowDistribution_" + str(e) + "^" + str(t))
+                    binaryHelpForFlowDistribution[e, t] = myModel.addVar(vtype=gurobi.GRB.BINARY,
+                                                                         name="helpFlowDistribution_" + str(
+                                                                             e) + "^" + str(t))
 
-            #original Direction
+            # original Direction
             for e in self.cc_graph.edges:
                 originalDirection[e] = myModel.addVar(vtype=gurobi.GRB.BINARY, name="o_" + str(e))
 
-            #binary help for original and full
+            # binary help for original and full
             for e in self.cc_graph.edges:
                 for t in range(1, self.timeSteps + 1):
-                    binaryHelpForOriginal1AndFull1[e, t] = myModel.addVar(vtype=gurobi.GRB.BINARY, name="hO1F1_" + str(e) + "^" + str(t))
-                    binaryHelpForOriginal1AndFull0[e, t] = myModel.addVar(vtype=gurobi.GRB.BINARY, name="hO1F0_" + str(e) + "^" + str(t))
-                    binaryHelpForOriginal0AndFull1[e, t] = myModel.addVar(vtype=gurobi.GRB.BINARY, name="hO0F1_" + str(e) + "^" + str(t))
-                    binaryHelpForOriginal0AndFull0[e, t] = myModel.addVar(vtype=gurobi.GRB.BINARY, name="hO0F0_" + str(e) + "^" + str(t))
+                    binaryHelpForOriginal1AndFull1[e, t] = myModel.addVar(vtype=gurobi.GRB.BINARY,
+                                                                          name="hO1F1_" + str(e) + "^" + str(t))
+                    binaryHelpForOriginal1AndFull0[e, t] = myModel.addVar(vtype=gurobi.GRB.BINARY,
+                                                                          name="hO1F0_" + str(e) + "^" + str(t))
+                    binaryHelpForOriginal0AndFull1[e, t] = myModel.addVar(vtype=gurobi.GRB.BINARY,
+                                                                          name="hO0F1_" + str(e) + "^" + str(t))
+                    binaryHelpForOriginal0AndFull0[e, t] = myModel.addVar(vtype=gurobi.GRB.BINARY,
+                                                                          name="hO0F0_" + str(e) + "^" + str(t))
 
-            #binary for flooded building
+            # binary for flooded building
             for b in self.all_buildings:
                 for t in range(1, self.timeSteps + 1):
-                    max_water_level[b, t] = myModel.addVar(vtype=gurobi.GRB.CONTINUOUS, name="max_water_level_" + str(b) + "^" + str(t))
+                    max_water_level[b, t] = myModel.addVar(vtype=gurobi.GRB.CONTINUOUS,
+                                                           name="max_water_level_" + str(b) + "^" + str(t))
                     schadensklasse = self.all_buildings[b]["schadensklasse"]
                     for k in range(1, 5):
-                        danger_class[k, b, t] = myModel.addVar(vtype=gurobi.GRB.BINARY, name="damage_class_" + str(k) + "_" + str(b) + "^" + str(t), obj=self.optimization_parameters["gefahrenklasse" + str(k) + "schadensklasse" + str(schadensklasse)] * self.optimization_parameters["gewichtung" + self.all_buildings[b]["akteur"]])
-                    danger_class[0, b, t] = myModel.addVar(vtype=gurobi.GRB.BINARY, name="damage_class_0_" + str(b) + "^" + str(t))
+                        danger_class[k, b, t] = myModel.addVar(vtype=gurobi.GRB.BINARY,
+                                                               name="damage_class_" + str(k) + "_" + str(b) + "^" + str(
+                                                                   t), obj=self.optimization_parameters[
+                                                                               "gefahrenklasse" + str(
+                                                                                   k) + "schadensklasse" + str(
+                                                                                   schadensklasse)] *
+                                                                           self.optimization_parameters[
+                                                                               "gewichtung" + self.all_buildings[b][
+                                                                                   "akteur"]])
+                    danger_class[0, b, t] = myModel.addVar(vtype=gurobi.GRB.BINARY,
+                                                           name="damage_class_0_" + str(b) + "^" + str(t))
 
-            #allowed to build on kataster
+            # allowed to build on kataster
             for k in self.all_kataster:
                 kataster_allowed[k] = myModel.addVar(vtype=gurobi.GRB.BINARY, name="kataster_allowed" + str(k))
 
         def addConstraints():
-            #constraint for the excess
+            # constraint for the excess
             for n in self.extendedGraph.nodes:
                 for t in range(1, self.timeSteps + 1):
-                    myModel.addConstr(excess[n, t], gurobi.GRB.EQUAL,  gurobi.quicksum(flows[e, t] for e in self.extendedGraph.in_edges(n)) - gurobi.quicksum(flows[e, t] for e in self.extendedGraph.out_edges(n)) + self.rain * self.cc_area[n], name="excess_" + str(n) + "_" + str(t))
+                    myModel.addConstr(excess[n, t], gurobi.GRB.EQUAL, gurobi.quicksum(
+                        flows[e, t] for e in self.extendedGraph.in_edges(n)) - gurobi.quicksum(
+                        flows[e, t] for e in self.extendedGraph.out_edges(n)) + self.rain * self.cc_area[n],
+                                      name="excess_" + str(n) + "_" + str(t))
 
             # #Constraint for geodesic Height as variable with Auffangbecken and Leitgraben
             # for n in self.extendedGraph.nodes:
@@ -454,18 +495,22 @@ class ipEquilibriumWaterLevels:
             #     else:
             #         myModel.addConstr(geodesicHeightAsVariable[n], gurobi.GRB.EQUAL, self.cc_geodesic_height[n], name="geodesicHeightAsVariable_" + str(n))
 
-            #set height_difference_through_auffangbecken
+            # set height_difference_through_auffangbecken
             for a in self.allAuffangbecken:
-                myModel.addConstr(height_difference_through_auffangbecken[a], gurobi.GRB.EQUAL, -1 * self.allAuffangbecken[a]["depth"] * decisionAuffangbecken[a], name="height_difference_through_auffangbecken_" + str(a))
+                myModel.addConstr(height_difference_through_auffangbecken[a], gurobi.GRB.EQUAL,
+                                  -1 * self.allAuffangbecken[a]["depth"] * decisionAuffangbecken[a],
+                                  name="height_difference_through_auffangbecken_" + str(a))
 
-            #set height_difference_through_leitgraben (for both leitgraeben and boeschungen)
+            # set height_difference_through_leitgraben (for both leitgraeben and boeschungen)
             for l in self.allLeitgraeben:
                 sign = -1
                 if self.allLeitgraeben[l]["leitgrabenOderBoeschung"] == "boeschung":
                     sign = 1
-                myModel.addConstr(height_difference_through_leitgraben[l], gurobi.GRB.EQUAL, sign * self.allLeitgraeben[l]["depth"] * decisionLeitgraben[l], name="height_difference_through_leitgraben_" + str(l))
+                myModel.addConstr(height_difference_through_leitgraben[l], gurobi.GRB.EQUAL,
+                                  sign * self.allLeitgraeben[l]["depth"] * decisionLeitgraben[l],
+                                  name="height_difference_through_leitgraben_" + str(l))
 
-            #set vertiefung to 1 if there is a auffangbecken or leitgraben built
+            # set vertiefung to 1 if there is a auffangbecken or leitgraben built
             for n in self.extendedGraph.nodes:
                 if n != (-1, -1):
                     auffangbecken_on_node = []
@@ -475,13 +520,16 @@ class ipEquilibriumWaterLevels:
                         if self.massnahmenOnNode[n][m]["type"] == 'auffangbecken':
                             auffangbecken_on_node.append(self.massnahmenOnNode[n][m]["id"])
                         if self.massnahmenOnNode[n][m]["type"] == 'leitgraben':
-                            if self.allLeitgraeben[self.massnahmenOnNode[n][m]["id"]]["leitgrabenOderBoeschung"] == "leitgraben":
+                            if self.allLeitgraeben[self.massnahmenOnNode[n][m]["id"]][
+                                "leitgrabenOderBoeschung"] == "leitgraben":
                                 leitgraeben_on_node.append(self.massnahmenOnNode[n][m]["id"])
                             else:
                                 boeschungen_on_node.append(self.massnahmenOnNode[n][m]["id"])
-                    #force vertiefung to 0 if no auffangbecken or leitgraben is built
-                    myModel.addConstr(vertiefung[n], gurobi.GRB.LESS_EQUAL, gurobi.quicksum(decisionAuffangbecken[a] for a in auffangbecken_on_node) + gurobi.quicksum(decisionLeitgraben[l] for l in leitgraeben_on_node))
-                    #force vertiefung to 1 if auffangbecken or leitgraben is built
+                    # force vertiefung to 0 if no auffangbecken or leitgraben is built
+                    myModel.addConstr(vertiefung[n], gurobi.GRB.LESS_EQUAL, gurobi.quicksum(
+                        decisionAuffangbecken[a] for a in auffangbecken_on_node) + gurobi.quicksum(
+                        decisionLeitgraben[l] for l in leitgraeben_on_node))
+                    # force vertiefung to 1 if auffangbecken or leitgraben is built
                     for a in auffangbecken_on_node:
                         myModel.addConstr(vertiefung[n], gurobi.GRB.GREATER_EQUAL, decisionAuffangbecken[a])
                     for l in leitgraeben_on_node:
@@ -495,32 +543,47 @@ class ipEquilibriumWaterLevels:
 
                     # candidates_for_max_height = [self.cc_geodesic_height[n] + self.allLeitgraeben[b]["depth"] * decisionLeitgraben[b] for b in boeschungen_on_node] + [self.cc_geodesic_height[n]]
                     # candidates_for_min_height = [self.cc_geodesic_height[n] - self.allAuffangbecken[a]["depth"] * decisionAuffangbecken[a] for a in auffangbecken_on_node] + [self.cc_geodesic_height[n] - self.allLeitgraeben[l]["depth"] * decisionLeitgraben[l] for l in leitgraeben_on_node] + [self.cc_geodesic_height[n]]
-                    candidates_for_max_height = [height_difference_through_leitgraben[b] for b in boeschungen_on_node] + [0]
-                    candidates_for_min_height = [height_difference_through_auffangbecken[a] for a in auffangbecken_on_node] + [height_difference_through_leitgraben[l] for l in leitgraeben_on_node] + [0]
+                    candidates_for_max_height = [height_difference_through_leitgraben[b] for b in
+                                                 boeschungen_on_node] + [0]
+                    candidates_for_min_height = [height_difference_through_auffangbecken[a] for a in
+                                                 auffangbecken_on_node] + [height_difference_through_leitgraben[l] for l
+                                                                           in leitgraeben_on_node] + [0]
 
                     max_geodesic_height_gain = max([self.allLeitgraeben[b]["depth"] for b in boeschungen_on_node] + [0])
-                    max_geodesic_height_reduction = max([self.allLeitgraeben[l]["depth"] for l in leitgraeben_on_node] + [self.allAuffangbecken[a]["depth"] for a in auffangbecken_on_node] + [0])
+                    max_geodesic_height_reduction = max(
+                        [self.allLeitgraeben[l]["depth"] for l in leitgraeben_on_node] + [
+                            self.allAuffangbecken[a]["depth"] for a in auffangbecken_on_node] + [0])
 
-                    #set maximum and minimum possible geodesic height
-                    myModel.addConstr(maximum_geodesic_height_on_node[n] == gurobi.max_(candidates_for_max_height), name='maximum_geodesic_height_on_node_' + str(n))
-                    myModel.addConstr(minimum_geodesic_height_on_node[n] == gurobi.min_(candidates_for_min_height), name='minimum_geodesic_height_on_node_' + str(n))
+                    # set maximum and minimum possible geodesic height
+                    myModel.addConstr(maximum_geodesic_height_on_node[n] == gurobi.max_(candidates_for_max_height),
+                                      name='maximum_geodesic_height_on_node_' + str(n))
+                    myModel.addConstr(minimum_geodesic_height_on_node[n] == gurobi.min_(candidates_for_min_height),
+                                      name='minimum_geodesic_height_on_node_' + str(n))
 
                     # those hold in general
-                    myModel.addConstr(geodesicHeightAsVariable[n], gurobi.GRB.GREATER_EQUAL, self.cc_geodesic_height[n] + minimum_geodesic_height_on_node[n])
-                    myModel.addConstr(geodesicHeightAsVariable[n], gurobi.GRB.LESS_EQUAL, self.cc_geodesic_height[n] + maximum_geodesic_height_on_node[n])
+                    myModel.addConstr(geodesicHeightAsVariable[n], gurobi.GRB.GREATER_EQUAL,
+                                      self.cc_geodesic_height[n] + minimum_geodesic_height_on_node[n])
+                    myModel.addConstr(geodesicHeightAsVariable[n], gurobi.GRB.LESS_EQUAL,
+                                      self.cc_geodesic_height[n] + maximum_geodesic_height_on_node[n])
 
-                    #if vertiefung = 1, force geodesic height to minimal value. This constraint is deactivated if vertiefung  = 0
-                    myModel.addConstr(geodesicHeightAsVariable[n], gurobi.GRB.LESS_EQUAL, self.cc_geodesic_height[n] + minimum_geodesic_height_on_node[n] + (1-vertiefung[n]) * (max_geodesic_height_gain + max_geodesic_height_reduction))
+                    # if vertiefung = 1, force geodesic height to minimal value. This constraint is deactivated if vertiefung  = 0
+                    myModel.addConstr(geodesicHeightAsVariable[n], gurobi.GRB.LESS_EQUAL,
+                                      self.cc_geodesic_height[n] + minimum_geodesic_height_on_node[n] + (
+                                              1 - vertiefung[n]) * (
+                                              max_geodesic_height_gain + max_geodesic_height_reduction))
 
                     # if vertiefung = 0, force geodesic height to maximal value. This constraint is deactivated if vertiefung  = 1
-                    myModel.addConstr(geodesicHeightAsVariable[n], gurobi.GRB.GREATER_EQUAL, self.cc_geodesic_height[n] + maximum_geodesic_height_on_node[n] - (vertiefung[n]) * (max_geodesic_height_gain + max_geodesic_height_reduction))
+                    myModel.addConstr(geodesicHeightAsVariable[n], gurobi.GRB.GREATER_EQUAL,
+                                      self.cc_geodesic_height[n] + maximum_geodesic_height_on_node[n] - (
+                                          vertiefung[n]) * (max_geodesic_height_gain + max_geodesic_height_reduction))
 
 
                 # set geodesic height of (-1, -1) to its height in the cc_graph
                 else:
-                    myModel.addConstr(geodesicHeightAsVariable[n], gurobi.GRB.EQUAL, self.cc_geodesic_height[n], name="geodesicHeightAsVariable_" + str(n))
+                    myModel.addConstr(geodesicHeightAsVariable[n], gurobi.GRB.EQUAL, self.cc_geodesic_height[n],
+                                      name="geodesicHeightAsVariable_" + str(n))
 
-            #for debugging purposes. Set this parameter to true if every massnahme should be built
+            # for debugging purposes. Set this parameter to true if every massnahme should be built
             build_everything = False
             if build_everything:
                 for a in self.allAuffangbecken:
@@ -529,48 +592,64 @@ class ipEquilibriumWaterLevels:
                 for l in self.allLeitgraeben:
                     myModel.addConstr(decisionLeitgraben[l] == 1)
 
-
-            #update constraint for water amounts
+            # update constraint for water amounts
             for n in self.extendedGraph.nodes:
                 for t in range(1, self.timeSteps + 1):
-                    myModel.addConstr(waterAmount[n, t], gurobi.GRB.EQUAL, waterAmount[n, t-1] + excess[n, t], name="updateWaterAmountsInNextTimeStep_" + str(n) + "_" + str(t))
+                    myModel.addConstr(waterAmount[n, t], gurobi.GRB.EQUAL, waterAmount[n, t - 1] + excess[n, t],
+                                      name="updateWaterAmountsInNextTimeStep_" + str(n) + "_" + str(t))
 
-            #initial constraint for water amounts
+            # initial constraint for water amounts
             for n in self.extendedGraph.nodes:
-                myModel.addConstr(waterAmount[n, 0], gurobi.GRB.EQUAL, 0, name="initialConstraintForWaterAmounts_" + str(n))
+                myModel.addConstr(waterAmount[n, 0], gurobi.GRB.EQUAL, 0,
+                                  name="initialConstraintForWaterAmounts_" + str(n))
 
-            #constraint for water height
+            # constraint for water height
             for n in self.extendedGraph.nodes:
                 for t in range(0, self.timeSteps + 1):
-                    myModel.addConstr(waterHeight[n, t] * self.cc_area[n], gurobi.GRB.EQUAL, waterAmount[n, t], name="ConnectWaterHeightToWaterAmount_" + str(n) + "_" + str(t))
+                    myModel.addConstr(waterHeight[n, t] * self.cc_area[n], gurobi.GRB.EQUAL, waterAmount[n, t],
+                                      name="ConnectWaterHeightToWaterAmount_" + str(n) + "_" + str(t))
 
             # constraint for floodedNodes
             for n in self.extendedGraph.nodes:
                 for t in range(0, self.timeSteps + 1):
-                    myModel.addGenConstrIndicator(floodedNodes[n, t], False, waterHeight[n, t], gurobi.GRB.EQUAL, 0, name="IndicatorConstraintForFloodedNodes_" + str(n) + "_" + str(t))
+                    myModel.addGenConstrIndicator(floodedNodes[n, t], False, waterHeight[n, t], gurobi.GRB.EQUAL, 0,
+                                                  name="IndicatorConstraintForFloodedNodes_" + str(n) + "_" + str(t))
 
-            #deactivating edges and active edges
+            # deactivating edges and active edges
             for e in self.cc_graph.edges:
                 for t in range(1, self.timeSteps + 1):
                     if e in removableEdges:
-                        myModel.addConstr(activeArc[e, t] + activeArc[(e[1], e[0]), t], gurobi.GRB.EQUAL, 1 - deactivateArc[e, t], name="deactivateArcs_" + str(e) + "_" + str(t))
+                        myModel.addConstr(activeArc[e, t] + activeArc[(e[1], e[0]), t], gurobi.GRB.EQUAL,
+                                          1 - deactivateArc[e, t], name="deactivateArcs_" + str(e) + "_" + str(t))
                     else:
-                        myModel.addConstr(activeArc[e, t] + activeArc[(e[1], e[0]), t], gurobi.GRB.EQUAL, 1, name="deactivateArcs_" + str(e) + "_" + str(t))
+                        myModel.addConstr(activeArc[e, t] + activeArc[(e[1], e[0]), t], gurobi.GRB.EQUAL, 1,
+                                          name="deactivateArcs_" + str(e) + "_" + str(t))
 
-            #constraints for flows: no flow on inactive arc
+            # constraints for flows: no flow on inactive arc
             for e in self.extendedGraph.edges:
                 for t in range(1, self.timeSteps + 1):
-                    myModel.addGenConstrIndicator(activeArc[e, t], False, flows[e, t], gurobi.GRB.LESS_EQUAL, 0, name="IndicatorNoFlowOnInactiveArc_" + str(e) + "_" + str(t))
+                    myModel.addGenConstrIndicator(activeArc[e, t], False, flows[e, t], gurobi.GRB.LESS_EQUAL, 0,
+                                                  name="IndicatorNoFlowOnInactiveArc_" + str(e) + "_" + str(t))
 
-            #binary help for flow distribution
+            # binary help for flow distribution
             for e in self.cc_graph.edges:
                 for t in range(1, self.timeSteps + 1):
-                    myModel.addConstr(binaryHelpForFlowDistribution[e, t], gurobi.GRB.GREATER_EQUAL, activeArc[e, t] - fullArc[e, t], name="BinaryHelpVariableForFlowDistribution_" + str(e) + "_" + str(t))
-                    myModel.addConstr(binaryHelpForFlowDistribution[e, t], gurobi.GRB.LESS_EQUAL, activeArc[e, t], name="BinaryHelpVariableForFlowDistribution_" + str(e) + "_" + str(t))
-                    myModel.addConstr(binaryHelpForFlowDistribution[e, t], gurobi.GRB.LESS_EQUAL, 1 - fullArc[e, t], name="BinaryHelpVariableForFlowDistribution_" + str(e) + "_" + str(t))
-                    myModel.addConstr(binaryHelpForFlowDistribution[(e[1], e[0]), t], gurobi.GRB.GREATER_EQUAL, activeArc[(e[1], e[0]), t] - fullArc[e, t], name="BinaryHelpVariableForFlowDistributionReversed_" + str(e) + "_" + str(t))
-                    myModel.addConstr(binaryHelpForFlowDistribution[(e[1], e[0]), t], gurobi.GRB.LESS_EQUAL, activeArc[(e[1], e[0]), t], name="BinaryHelpVariableForFlowDistributionReversed_" + str(e) + "_" + str(t))
-                    myModel.addConstr(binaryHelpForFlowDistribution[(e[1], e[0]), t], gurobi.GRB.LESS_EQUAL, 1 - fullArc[e, t], name="BinaryHelpVariableForFlowDistributionReversed_" + str(e) + "_" + str(t))
+                    myModel.addConstr(binaryHelpForFlowDistribution[e, t], gurobi.GRB.GREATER_EQUAL,
+                                      activeArc[e, t] - fullArc[e, t],
+                                      name="BinaryHelpVariableForFlowDistribution_" + str(e) + "_" + str(t))
+                    myModel.addConstr(binaryHelpForFlowDistribution[e, t], gurobi.GRB.LESS_EQUAL, activeArc[e, t],
+                                      name="BinaryHelpVariableForFlowDistribution_" + str(e) + "_" + str(t))
+                    myModel.addConstr(binaryHelpForFlowDistribution[e, t], gurobi.GRB.LESS_EQUAL, 1 - fullArc[e, t],
+                                      name="BinaryHelpVariableForFlowDistribution_" + str(e) + "_" + str(t))
+                    myModel.addConstr(binaryHelpForFlowDistribution[(e[1], e[0]), t], gurobi.GRB.GREATER_EQUAL,
+                                      activeArc[(e[1], e[0]), t] - fullArc[e, t],
+                                      name="BinaryHelpVariableForFlowDistributionReversed_" + str(e) + "_" + str(t))
+                    myModel.addConstr(binaryHelpForFlowDistribution[(e[1], e[0]), t], gurobi.GRB.LESS_EQUAL,
+                                      activeArc[(e[1], e[0]), t],
+                                      name="BinaryHelpVariableForFlowDistributionReversed_" + str(e) + "_" + str(t))
+                    myModel.addConstr(binaryHelpForFlowDistribution[(e[1], e[0]), t], gurobi.GRB.LESS_EQUAL,
+                                      1 - fullArc[e, t],
+                                      name="BinaryHelpVariableForFlowDistributionReversed_" + str(e) + "_" + str(t))
 
             # Ratios of Flows
             for n in self.extendedGraph.nodes:
@@ -582,96 +661,145 @@ class ipEquilibriumWaterLevels:
                         for p1 in range(len(successors)):
                             for p2 in range(p1 + 1, len(successors)):
                                 # #old constraints
-                                myModel.addGenConstrIndicator(binaryHelpForFlowDistribution[(n, successors[p2]), t], True, flows[(n, successors[p1]), t] - (self.cc_ratios[(n, successors[p1])] / self.cc_ratios[(n, successors[p2])] * flows[(n, successors[p2]), t]), gurobi.GRB.LESS_EQUAL, 0, name="flowDistribution")
-                                myModel.addGenConstrIndicator(binaryHelpForFlowDistribution[(n, successors[p1]), t], True, flows[(n, successors[p2]), t] - (self.cc_ratios[(n, successors[p2])] / self.cc_ratios[(n, successors[p1])] * flows[(n, successors[p1]), t]), gurobi.GRB.LESS_EQUAL, 0, name="flowDistribution")
+                                myModel.addGenConstrIndicator(binaryHelpForFlowDistribution[(n, successors[p2]), t],
+                                                              True, flows[(n, successors[p1]), t] - (
+                                                                      self.cc_ratios[(n, successors[p1])] /
+                                                                      self.cc_ratios[(n, successors[p2])] * flows[
+                                                                          (n, successors[p2]), t]),
+                                                              gurobi.GRB.LESS_EQUAL, 0, name="flowDistribution")
+                                myModel.addGenConstrIndicator(binaryHelpForFlowDistribution[(n, successors[p1]), t],
+                                                              True, flows[(n, successors[p2]), t] - (
+                                                                      self.cc_ratios[(n, successors[p2])] /
+                                                                      self.cc_ratios[(n, successors[p1])] * flows[
+                                                                          (n, successors[p1]), t]),
+                                                              gurobi.GRB.LESS_EQUAL, 0, name="flowDistribution")
 
                                 # myModel.addGenConstrIndicator(binaryHelpForFlowDistribution[(n, successors[p2]), t], True, round(self.cc_ratios[(n, successors[p2])], 6) * 1e+6 * flows[(n, successors[p1]), t] - (round(self.cc_ratios[(n, successors[p1])], 6) * 1e+6 * flows[(n, successors[p2]), t]), gurobi.GRB.LESS_EQUAL, 0, name="flowDistribution")
                                 # myModel.addGenConstrIndicator(binaryHelpForFlowDistribution[(n, successors[p1]), t], True, round(self.cc_ratios[(n, successors[p1])], 6) * 1e+6 * flows[(n, successors[p2]), t] - (round(self.cc_ratios[(n, successors[p2])], 6) * 1e+6 * flows[(n, successors[p1]), t]), gurobi.GRB.LESS_EQUAL, 0, name="flowDistribution")
 
-            #originalDirection
+            # originalDirection
             for e in self.cc_graph.edges:
                 for t in range(1, self.timeSteps + 1):
-                    myModel.addGenConstrIndicator(originalDirection[e], True, geodesicHeightAsVariable[e[0]] - geodesicHeightAsVariable[e[1]], gurobi.GRB.GREATER_EQUAL, 0, name="originalDirectionForcedToBe0")
-                    myModel.addGenConstrIndicator(originalDirection[e], False, geodesicHeightAsVariable[e[0]] - geodesicHeightAsVariable[e[1]], gurobi.GRB.LESS_EQUAL, 0, name="originalDirectionForcedToBe1")
+                    myModel.addGenConstrIndicator(originalDirection[e], True,
+                                                  geodesicHeightAsVariable[e[0]] - geodesicHeightAsVariable[e[1]],
+                                                  gurobi.GRB.GREATER_EQUAL, 0, name="originalDirectionForcedToBe0")
+                    myModel.addGenConstrIndicator(originalDirection[e], False,
+                                                  geodesicHeightAsVariable[e[0]] - geodesicHeightAsVariable[e[1]],
+                                                  gurobi.GRB.LESS_EQUAL, 0, name="originalDirectionForcedToBe1")
 
-            #set help variable for original and full
+            # set help variable for original and full
             for e in self.cc_graph.edges:
                 for t in range(1, self.timeSteps + 1):
-                    #11
-                    myModel.addConstr(binaryHelpForOriginal1AndFull1[e, t], gurobi.GRB.GREATER_EQUAL, -1 + originalDirection[e] + fullArc[e, t])
+                    # 11
+                    myModel.addConstr(binaryHelpForOriginal1AndFull1[e, t], gurobi.GRB.GREATER_EQUAL,
+                                      -1 + originalDirection[e] + fullArc[e, t])
                     myModel.addConstr(binaryHelpForOriginal1AndFull1[e, t], gurobi.GRB.LESS_EQUAL, fullArc[e, t])
                     myModel.addConstr(binaryHelpForOriginal1AndFull1[e, t], gurobi.GRB.LESS_EQUAL, originalDirection[e])
-                    #10
-                    myModel.addConstr(binaryHelpForOriginal1AndFull0[e, t], gurobi.GRB.GREATER_EQUAL, originalDirection[e] - fullArc[e, t])
+                    # 10
+                    myModel.addConstr(binaryHelpForOriginal1AndFull0[e, t], gurobi.GRB.GREATER_EQUAL,
+                                      originalDirection[e] - fullArc[e, t])
                     myModel.addConstr(binaryHelpForOriginal1AndFull0[e, t], gurobi.GRB.LESS_EQUAL, 1 - fullArc[e, t])
                     myModel.addConstr(binaryHelpForOriginal1AndFull0[e, t], gurobi.GRB.LESS_EQUAL, originalDirection[e])
                     # 01
-                    myModel.addConstr(binaryHelpForOriginal0AndFull1[e, t], gurobi.GRB.GREATER_EQUAL, - originalDirection[e] + fullArc[e, t])
+                    myModel.addConstr(binaryHelpForOriginal0AndFull1[e, t], gurobi.GRB.GREATER_EQUAL,
+                                      - originalDirection[e] + fullArc[e, t])
                     myModel.addConstr(binaryHelpForOriginal0AndFull1[e, t], gurobi.GRB.LESS_EQUAL, fullArc[e, t])
-                    myModel.addConstr(binaryHelpForOriginal0AndFull1[e, t], gurobi.GRB.LESS_EQUAL, 1 - originalDirection[e])
+                    myModel.addConstr(binaryHelpForOriginal0AndFull1[e, t], gurobi.GRB.LESS_EQUAL,
+                                      1 - originalDirection[e])
                     # 00
-                    myModel.addConstr(binaryHelpForOriginal0AndFull0[e, t], gurobi.GRB.GREATER_EQUAL, 1 - originalDirection[e] - fullArc[e, t])
+                    myModel.addConstr(binaryHelpForOriginal0AndFull0[e, t], gurobi.GRB.GREATER_EQUAL,
+                                      1 - originalDirection[e] - fullArc[e, t])
                     myModel.addConstr(binaryHelpForOriginal0AndFull0[e, t], gurobi.GRB.LESS_EQUAL, 1 - fullArc[e, t])
-                    myModel.addConstr(binaryHelpForOriginal0AndFull0[e, t], gurobi.GRB.LESS_EQUAL, 1 - originalDirection[e])
+                    myModel.addConstr(binaryHelpForOriginal0AndFull0[e, t], gurobi.GRB.LESS_EQUAL,
+                                      1 - originalDirection[e])
 
-            #constraints for full arc
+            # constraints for full arc
             for e in self.cc_graph.edges:
                 for t in range(1, self.timeSteps + 1):
-                    #originalDirection
-                    myModel.addGenConstrIndicator(binaryHelpForOriginal1AndFull1[e, t], True, waterHeight[e[1], t] - (geodesicHeightAsVariable[e[0]] - geodesicHeightAsVariable[e[1]]), gurobi.GRB.GREATER_EQUAL, 0, name="fullArcForcedToBe0OriginalDirection")
-                    myModel.addGenConstrIndicator(binaryHelpForOriginal1AndFull0[e, t], True, waterHeight[e[1], t] - (geodesicHeightAsVariable[e[0]] - geodesicHeightAsVariable[e[1]]), gurobi.GRB.LESS_EQUAL, 0, name="fullArcForcedToBe1OriginalDirection")
+                    # originalDirection
+                    myModel.addGenConstrIndicator(binaryHelpForOriginal1AndFull1[e, t], True, waterHeight[e[1], t] - (
+                            geodesicHeightAsVariable[e[0]] - geodesicHeightAsVariable[e[1]]),
+                                                  gurobi.GRB.GREATER_EQUAL, 0,
+                                                  name="fullArcForcedToBe0OriginalDirection")
+                    myModel.addGenConstrIndicator(binaryHelpForOriginal1AndFull0[e, t], True, waterHeight[e[1], t] - (
+                            geodesicHeightAsVariable[e[0]] - geodesicHeightAsVariable[e[1]]), gurobi.GRB.LESS_EQUAL,
+                                                  0, name="fullArcForcedToBe1OriginalDirection")
 
-                    #notOriginalDirection
-                    myModel.addGenConstrIndicator(binaryHelpForOriginal0AndFull1[e, t], True, waterHeight[e[0], t] - (geodesicHeightAsVariable[e[1]] - geodesicHeightAsVariable[e[0]]), gurobi.GRB.GREATER_EQUAL, 0, name="fullArcForcedToBe1NonOriginalDirection")
-                    myModel.addGenConstrIndicator(binaryHelpForOriginal0AndFull0[e, t], True, waterHeight[e[0], t] - (geodesicHeightAsVariable[e[1]] - geodesicHeightAsVariable[e[0]]), gurobi.GRB.LESS_EQUAL, 0, name="fullArcForcedToBe0NonOriginalDirection")
+                    # notOriginalDirection
+                    myModel.addGenConstrIndicator(binaryHelpForOriginal0AndFull1[e, t], True, waterHeight[e[0], t] - (
+                            geodesicHeightAsVariable[e[1]] - geodesicHeightAsVariable[e[0]]),
+                                                  gurobi.GRB.GREATER_EQUAL, 0,
+                                                  name="fullArcForcedToBe1NonOriginalDirection")
+                    myModel.addGenConstrIndicator(binaryHelpForOriginal0AndFull0[e, t], True, waterHeight[e[0], t] - (
+                            geodesicHeightAsVariable[e[1]] - geodesicHeightAsVariable[e[0]]), gurobi.GRB.LESS_EQUAL,
+                                                  0, name="fullArcForcedToBe0NonOriginalDirection")
 
-            #constraints for effects of fullArc on the flows (indirect via height)
+            # constraints for effects of fullArc on the flows (indirect via height)
             for e in self.cc_graph.edges:
                 for t in range(1, self.timeSteps + 1):
-                    myModel.addGenConstrIndicator(fullArc[e, t], True, geodesicHeightAsVariable[e[0]] + waterHeight[e[0], t] - (geodesicHeightAsVariable[e[1]] + waterHeight[e[1], t]), gurobi.GRB.EQUAL, 0, name="effectsOnFullArcForFlows")
+                    myModel.addGenConstrIndicator(fullArc[e, t], True,
+                                                  geodesicHeightAsVariable[e[0]] + waterHeight[e[0], t] - (
+                                                          geodesicHeightAsVariable[e[1]] + waterHeight[e[1], t]),
+                                                  gurobi.GRB.EQUAL, 0, name="effectsOnFullArcForFlows")
 
-            #Force all water to flow out of higher node as long as there is a non-full arc
+            # Force all water to flow out of higher node as long as there is a non-full arc
             for e in self.cc_graph.edges:
                 for t in range(1, self.timeSteps + 1):
-                    #new constraint
-                    myModel.addGenConstrIndicator(binaryHelpForOriginal1AndFull0[e, t], True, waterHeight[e[0], t], gurobi.GRB.EQUAL, 0, name="noWaterStoredIfThereIsStillAnActiveOutArc")
-                    myModel.addGenConstrIndicator(binaryHelpForOriginal0AndFull0[e, t], True, waterHeight[e[1], t], gurobi.GRB.EQUAL, 0, name="noWaterStoredIfThereIsStillAnActiveOutArc")
+                    # new constraint
+                    myModel.addGenConstrIndicator(binaryHelpForOriginal1AndFull0[e, t], True, waterHeight[e[0], t],
+                                                  gurobi.GRB.EQUAL, 0, name="noWaterStoredIfThereIsStillAnActiveOutArc")
+                    myModel.addGenConstrIndicator(binaryHelpForOriginal0AndFull0[e, t], True, waterHeight[e[1], t],
+                                                  gurobi.GRB.EQUAL, 0, name="noWaterStoredIfThereIsStillAnActiveOutArc")
 
-            #no upwards flow on non-full arcs
+            # no upwards flow on non-full arcs
             for e in self.cc_graph.edges:
                 for t in range(1, self.timeSteps + 1):
-                    myModel.addGenConstrIndicator(binaryHelpForOriginal1AndFull0[e, t], True, activeArc[(e[1], e[0]), t], gurobi.GRB.EQUAL, 0, name="noUpwardsFlowOnNonFullArcs")
-                    myModel.addGenConstrIndicator(binaryHelpForOriginal0AndFull0[e, t], True, activeArc[e, t], gurobi.GRB.EQUAL, 0, name="noUpwardsFlowOnNonFullArcs")
+                    myModel.addGenConstrIndicator(binaryHelpForOriginal1AndFull0[e, t], True,
+                                                  activeArc[(e[1], e[0]), t], gurobi.GRB.EQUAL, 0,
+                                                  name="noUpwardsFlowOnNonFullArcs")
+                    myModel.addGenConstrIndicator(binaryHelpForOriginal0AndFull0[e, t], True, activeArc[e, t],
+                                                  gurobi.GRB.EQUAL, 0, name="noUpwardsFlowOnNonFullArcs")
 
             # #just for test purposes activate all Auffangbecken
             # for auffangbeckenId in self.allAuffangbecken:
             #     myModel.addConstr(decisionAuffangbecken[auffangbeckenId], gurobi.GRB.EQUAL, 0)
 
-            #flooded building is max of flooded nodes
+            # flooded building is max of flooded nodes
             for n in self.extendedGraph.nodes:
                 if n != (-1, -1):
                     for t in range(1, self.timeSteps + 1):
                         if self.massnahmenOnNode[n]:
                             for key, massnahme in self.massnahmenOnNode[n].items():
                                 if massnahme["type"] == "building":
-                                    myModel.addConstr(max_water_level[massnahme["id"], t], gurobi.GRB.GREATER_EQUAL, waterHeight[n, t])
+                                    myModel.addConstr(max_water_level[massnahme["id"], t], gurobi.GRB.GREATER_EQUAL,
+                                                      waterHeight[n, t])
             # Danger classes add up to 1
             for b in self.all_buildings:
                 for t in range(1, self.timeSteps + 1):
-                    myModel.addConstr(gurobi.quicksum(danger_class[k, b, t] for k in range(0, 5)), gurobi.GRB.EQUAL, 1, name="damageClassesAddUpToOne")
+                    myModel.addConstr(gurobi.quicksum(danger_class[k, b, t] for k in range(0, 5)), gurobi.GRB.EQUAL, 1,
+                                      name="damageClassesAddUpToOne")
 
             # force danger classes up
             for b in self.all_buildings:
                 for t in range(1, self.timeSteps + 1):
                     for k in range(0, 5):
-                        myModel.addGenConstrIndicator(danger_class[k, b, t], True, max_water_level[b, t], gurobi.GRB.LESS_EQUAL, self.threshold_for_gefahrenklasse[k])
+                        myModel.addGenConstrIndicator(danger_class[k, b, t], True, max_water_level[b, t],
+                                                      gurobi.GRB.LESS_EQUAL, self.threshold_for_gefahrenklasse[k])
 
             # Constraint for budget
-            myModel.addConstr(gurobi.quicksum(decisionAuffangbecken[a] * self.allAuffangbecken[a]["cost"] for a in self.allAuffangbecken) + gurobi.quicksum(decisionLeitgraben[l] * self.allLeitgraeben[l]["cost"] for l in self.allLeitgraeben), gurobi.GRB.LESS_EQUAL, self.optimization_parameters["budget"], name="budgetForAuffangbeckenUndLeitgraeben")
+            myModel.addConstr(gurobi.quicksum(decisionAuffangbecken[a] * self.allAuffangbecken[a]["cost"] for a in
+                                              self.allAuffangbecken) + gurobi.quicksum(
+                decisionLeitgraben[l] * self.allLeitgraeben[l]["cost"] for l in self.allLeitgraeben),
+                              gurobi.GRB.LESS_EQUAL, self.optimization_parameters["budget"],
+                              name="budgetForAuffangbeckenUndLeitgraeben")
 
             # Upper bound on yellow and red kataster
-            myModel.addConstr(gurobi.quicksum(kataster_allowed[k] for k in self.all_kataster_yellow), gurobi.GRB.LESS_EQUAL, self.optimization_parameters["maxAnzahlGelb"], name="maxNumberOfYellow")
-            myModel.addConstr(gurobi.quicksum(kataster_allowed[k] for k in self.all_kataster_red), gurobi.GRB.LESS_EQUAL, self.optimization_parameters["maxAnzahlRot"], name="maxNumberOfRed")
+            myModel.addConstr(gurobi.quicksum(kataster_allowed[k] for k in self.all_kataster_yellow),
+                              gurobi.GRB.LESS_EQUAL, self.optimization_parameters["maxAnzahlGelb"],
+                              name="maxNumberOfYellow")
+            myModel.addConstr(gurobi.quicksum(kataster_allowed[k] for k in self.all_kataster_red),
+                              gurobi.GRB.LESS_EQUAL, self.optimization_parameters["maxAnzahlRot"],
+                              name="maxNumberOfRed")
 
             # No Massnahmen on black kataster
             for k in self.all_kataster_black:
@@ -683,20 +811,27 @@ class ipEquilibriumWaterLevels:
 
             for intersection in self.massnahmen_kataster:
                 if intersection[1] == "Leitgraben":
-                    myModel.addConstr(kataster_allowed[intersection[3]], gurobi.GRB.GREATER_EQUAL, decisionLeitgraben[intersection[2]])
+                    myModel.addConstr(kataster_allowed[intersection[3]], gurobi.GRB.GREATER_EQUAL,
+                                      decisionLeitgraben[intersection[2]])
                 elif intersection[1] == "Auffangbecken":
-                    myModel.addConstr(kataster_allowed[intersection[3]], gurobi.GRB.GREATER_EQUAL, decisionAuffangbecken[intersection[2]])
+                    myModel.addConstr(kataster_allowed[intersection[3]], gurobi.GRB.GREATER_EQUAL,
+                                      decisionAuffangbecken[intersection[2]])
 
-            #If Leitgraben has depth 0, decide not to build it (this constraint is not required, but may speed up computations a bit)
+            # If Leitgraben has depth 0, decide not to build it (this constraint is not required, but may speed up computations a bit)
             for l in self.allLeitgraeben:
                 if self.allLeitgraeben[l]["depth"] == 0:
-                    myModel.addConstr(decisionLeitgraben[l], gurobi.GRB.EQUAL, 0, name="LeitgraebenWithDepth0areNotBuild")
+                    myModel.addConstr(decisionLeitgraben[l], gurobi.GRB.EQUAL, 0,
+                                      name="LeitgraebenWithDepth0areNotBuild")
 
-            #performance tuning constraints
+            # performance tuning constraints
             for e in self.cc_graph.edges:
                 for t in range(1, self.timeSteps + 1):
-                    myModel.addGenConstrIndicator(originalDirection[e], True, floodedNodes[e[1], t] - floodedNodes[e[0], t], gurobi.GRB.GREATER_EQUAL, 0, name="performanceConstraint1")
-                    myModel.addGenConstrIndicator(originalDirection[e], False, floodedNodes[e[0], t] - floodedNodes[e[1], t], gurobi.GRB.GREATER_EQUAL, 0, name="performanceConstraint1")
+                    myModel.addGenConstrIndicator(originalDirection[e], True,
+                                                  floodedNodes[e[1], t] - floodedNodes[e[0], t],
+                                                  gurobi.GRB.GREATER_EQUAL, 0, name="performanceConstraint1")
+                    myModel.addGenConstrIndicator(originalDirection[e], False,
+                                                  floodedNodes[e[0], t] - floodedNodes[e[1], t],
+                                                  gurobi.GRB.GREATER_EQUAL, 0, name="performanceConstraint1")
 
             print("Number of Nodes: ", self.cc_graph.number_of_nodes())
             print("Start presolve non-flooded: ", datetime.datetime.now())
@@ -707,12 +842,15 @@ class ipEquilibriumWaterLevels:
                     maximum_additional_geodesic_height = 0
                     for massnahme in self.massnahmenOnNode[n]:
                         if self.massnahmenOnNode[n][massnahme]["type"] == "leitgraben":
-                            if self.allLeitgraeben[self.massnahmenOnNode[n][massnahme]["id"]]["leitgrabenOderBoeschung"] == "boeschung":
-                                if self.allLeitgraeben[self.massnahmenOnNode[n][massnahme]["id"]]["depth"] > maximum_additional_geodesic_height:
-                                    maximum_additional_geodesic_height = self.allLeitgraeben[self.massnahmenOnNode[n][massnahme]["id"]]["depth"]
+                            if self.allLeitgraeben[self.massnahmenOnNode[n][massnahme]["id"]][
+                                "leitgrabenOderBoeschung"] == "boeschung":
+                                if self.allLeitgraeben[self.massnahmenOnNode[n][massnahme]["id"]][
+                                    "depth"] > maximum_additional_geodesic_height:
+                                    maximum_additional_geodesic_height = \
+                                        self.allLeitgraeben[self.massnahmenOnNode[n][massnahme]["id"]]["depth"]
                     cc_maximum_geodesic_height[n] = cc_maximum_geodesic_height[n] + maximum_additional_geodesic_height
             for e in self.cc_graph.edges:
-                #have to turn around edges if maximum geodesic height flips around
+                # have to turn around edges if maximum geodesic height flips around
                 if cc_maximum_geodesic_height[e[0]] < cc_maximum_geodesic_height[e[1]]:
                     cc_graph_with_maximum_possible_geodesic_height.remove_edge(e[0], e[1])
                     cc_graph_with_maximum_possible_geodesic_height.add_edge(e[1], e[0])
@@ -733,12 +871,14 @@ class ipEquilibriumWaterLevels:
                                     can_set_the_constraint = False
                     if can_set_the_constraint:
                         for s in nx.nodes(nx.dfs_tree(cc_graph_with_maximum_possible_geodesic_height, n)):
-                            volume_needed = volume_needed + self.cc_area[s] * (cc_maximum_geodesic_height[n] - cc_maximum_geodesic_height[s])
+                            volume_needed = volume_needed + self.cc_area[s] * (
+                                    cc_maximum_geodesic_height[n] - cc_maximum_geodesic_height[s])
                         if volume_needed > self.total_volume:
                             counter_presolved_nodes_not_flooded = counter_presolved_nodes_not_flooded + 1
                             remember_non_flooded_nodes.add(n)
                             for t in range(1, self.timeSteps + 1):
-                                myModel.addConstr(floodedNodes[n, t], gurobi.GRB.EQUAL, 0, name="performanceConstraint2")
+                                myModel.addConstr(floodedNodes[n, t], gurobi.GRB.EQUAL, 0,
+                                                  name="performanceConstraint2")
                                 myModel.addConstr(excess[n, t], gurobi.GRB.EQUAL, 0, name="performanceConstraint2")
                         else:
                             volume_needed = 0
@@ -749,21 +889,27 @@ class ipEquilibriumWaterLevels:
                                     nodes_to_remove.append(u)
                             removed_graph.remove_nodes_from(nodes_to_remove)
                             for s in nx.node_connected_component(removed_graph, n):
-                                volume_needed = volume_needed + self.cc_area[s] * (cc_maximum_geodesic_height[n] - cc_maximum_geodesic_height[s])
+                                volume_needed = volume_needed + self.cc_area[s] * (
+                                        cc_maximum_geodesic_height[n] - cc_maximum_geodesic_height[s])
                             if volume_needed > self.total_volume:
                                 counter_presolved_nodes_not_flooded = counter_presolved_nodes_not_flooded + 1
                                 remember_non_flooded_nodes.add(n)
                                 for t in range(1, self.timeSteps + 1):
-                                    myModel.addConstr(floodedNodes[n, t], gurobi.GRB.EQUAL, 0, name="performanceConstraint2")
+                                    myModel.addConstr(floodedNodes[n, t], gurobi.GRB.EQUAL, 0,
+                                                      name="performanceConstraint2")
                                     myModel.addConstr(excess[n, t], gurobi.GRB.EQUAL, 0, name="performanceConstraint2")
                             else:
                                 for s in nx.node_connected_component(removed_graph, n):
                                     for t in range(1, self.timeSteps + 1):
-                                        myModel.addConstr(floodedNodes[n, t], gurobi.GRB.LESS_EQUAL, floodedNodes[s, t], name="performanceConstraint2")
-                                        myModel.addGenConstrIndicator(floodedNodes[n, t], True, waterHeight[s, t], gurobi.GRB.GREATER_EQUAL, cc_maximum_geodesic_height[n] - cc_maximum_geodesic_height[s], name="performanceConstraint2")
+                                        myModel.addConstr(floodedNodes[n, t], gurobi.GRB.LESS_EQUAL, floodedNodes[s, t],
+                                                          name="performanceConstraint2")
+                                        myModel.addGenConstrIndicator(floodedNodes[n, t], True, waterHeight[s, t],
+                                                                      gurobi.GRB.GREATER_EQUAL,
+                                                                      cc_maximum_geodesic_height[n] -
+                                                                      cc_maximum_geodesic_height[s],
+                                                                      name="performanceConstraint2")
             print("Number of presolved non-flooded nodes: ", counter_presolved_nodes_not_flooded)
             print("End presolve non-flooded: ", datetime.datetime.now())
-
 
             counter_presolved_nodes_flooded = 0
             for n in self.cc_graph.nodes:
@@ -793,26 +939,38 @@ class ipEquilibriumWaterLevels:
                 for p in self.cc_graph.predecessors(n):
                     for s in self.cc_graph.successors(n):
                         for t in range(1, self.timeSteps + 1):
-                            myModel.addConstr(fullArc[(n, s), t], gurobi.GRB.GREATER_EQUAL, fullArc[(p, n), t] - (2 - originalDirection[(p, n)] - originalDirection[(n, s)]), name="performanceConstraint4")
+                            myModel.addConstr(fullArc[(n, s), t], gurobi.GRB.GREATER_EQUAL, fullArc[(p, n), t] - (
+                                    2 - originalDirection[(p, n)] - originalDirection[(n, s)]),
+                                              name="performanceConstraint4")
 
             # presolve Flows out of (-1, -1)
             for s in self.cc_graph.successors((-1, -1)):
-                #This constraint is relaxed due to numerical issues. Without the relaxation, it might become infeasible
-                myModel.addConstr(flows[((-1, -1), s), 1], gurobi.GRB.GREATER_EQUAL, self.rain * self.cc_area[(-1, -1)] * self.cc_ratios[(-1, -1), s] - 0.01, name="performanceConstraint5")
+                # This constraint is relaxed due to numerical issues. Without the relaxation, it might become infeasible
+                myModel.addConstr(flows[((-1, -1), s), 1], gurobi.GRB.GREATER_EQUAL,
+                                  self.rain * self.cc_area[(-1, -1)] * self.cc_ratios[(-1, -1), s] - 0.01,
+                                  name="performanceConstraint5")
 
             # Performance: If a node is flooded, all outgoing arcs must be full
             for n in self.cc_graph.nodes:
                 for s in self.cc_graph.successors(n):
-                    myModel.addGenConstrIndicator(floodedNodes[n, t], True, fullArc[(n, s), t] - originalDirection[(n, s)], gurobi.GRB.GREATER_EQUAL, 0, name="performanceConstraint6")
+                    myModel.addGenConstrIndicator(floodedNodes[n, t], True,
+                                                  fullArc[(n, s), t] - originalDirection[(n, s)],
+                                                  gurobi.GRB.GREATER_EQUAL, 0, name="performanceConstraint6")
                 for p in self.cc_graph.predecessors(n):
-                    myModel.addGenConstrIndicator(floodedNodes[n, t], True, fullArc[(p, n), t] + originalDirection[(p, n)], gurobi.GRB.GREATER_EQUAL, 1, name="performanceConstraint6")
+                    myModel.addGenConstrIndicator(floodedNodes[n, t], True,
+                                                  fullArc[(p, n), t] + originalDirection[(p, n)],
+                                                  gurobi.GRB.GREATER_EQUAL, 1, name="performanceConstraint6")
 
             # Performance: If a node is not flooded, all ingoing arcs cannot be full
             for n in self.cc_graph.nodes:
                 for p in self.cc_graph.predecessors(n):
-                    myModel.addGenConstrIndicator(floodedNodes[n, t], False, fullArc[(p, n), t] + originalDirection[(p, n)], gurobi.GRB.LESS_EQUAL, 1, name="performanceConstraint7")
+                    myModel.addGenConstrIndicator(floodedNodes[n, t], False,
+                                                  fullArc[(p, n), t] + originalDirection[(p, n)], gurobi.GRB.LESS_EQUAL,
+                                                  1, name="performanceConstraint7")
                 for s in self.cc_graph.successors(n):
-                    myModel.addGenConstrIndicator(floodedNodes[n, t], False, fullArc[(n, s), t] - originalDirection[(n, s)], gurobi.GRB.LESS_EQUAL, 0, name="performanceConstraint7")
+                    myModel.addGenConstrIndicator(floodedNodes[n, t], False,
+                                                  fullArc[(n, s), t] - originalDirection[(n, s)], gurobi.GRB.LESS_EQUAL,
+                                                  0, name="performanceConstraint7")
 
         def addInitialSolutionConstraints():
             counter_initial_solution_constraints = 0
@@ -825,14 +983,15 @@ class ipEquilibriumWaterLevels:
                             if massnahme["type"] != "building":
                                 can_set_the_constraint = False
                     if self.initialSolution["waterHeight"][n] > epsilon:
-                            can_set_the_constraint = False
+                        can_set_the_constraint = False
                     for s in self.cc_graph.successors(n):
                         if self.initialSolution["waterHeight"][s] > epsilon:
                             can_set_the_constraint = False
                     if can_set_the_constraint:
                         counter_initial_solution_constraints = counter_initial_solution_constraints + 1
                         for t in range(1, self.timeSteps + 1):
-                            myModel.addConstr(floodedNodes[n, t], gurobi.GRB.EQUAL, 0, name="performanceConstraintInitialSolution")
+                            myModel.addConstr(floodedNodes[n, t], gurobi.GRB.EQUAL, 0,
+                                              name="performanceConstraintInitialSolution")
             print("Number of presolved non-flooded nodes from initial solution: ", counter_initial_solution_constraints)
 
         def handOverStartSolution():
@@ -843,7 +1002,6 @@ class ipEquilibriumWaterLevels:
                             floodedNodes[n, self.timeSteps].start = 1
                         else:
                             floodedNodes[n, self.timeSteps].start = 0
-
 
         def putActiveIntoDictionary():
             for t in range(1, self.timeSteps + 1):
@@ -915,13 +1073,13 @@ class ipEquilibriumWaterLevels:
                 if n != (-1, -1):
                     sum_of_inflows = 0
                     for pred in self.extendedGraph.predecessors(n):
-                        #v = myModel.getVarByName("gamma_" + str(pred) + "_" + str(n) + "^" + str(self.timeSteps))
+                        # v = myModel.getVarByName("gamma_" + str(pred) + "_" + str(n) + "^" + str(self.timeSteps))
                         sum_of_inflows = sum_of_inflows + flows[(pred, n), self.timeSteps].x
                     flow_through_nodes[n] = sum_of_inflows / self.cc_area[n]
             return flow_through_nodes
 
         def compute_handlungsbedarf():
-            #damage_class
+            # damage_class
             handlungsbedarf = dict()
             for b in self.all_buildings:
                 schadensklasse = self.all_buildings[b]["schadensklasse"]
@@ -981,15 +1139,15 @@ class ipEquilibriumWaterLevels:
         handOverStartSolution()
         if self.initialSolution is not None:
             pass
-            #addInitialSolutionConstraints()
+            # addInitialSolutionConstraints()
 
         # myModel.setParam("Presolve", 2) #set presolve to aggressive
-        myModel.setParam("Cuts", 3) #This is what gurobi proposes to do
+        myModel.setParam("Cuts", 3)  # This is what gurobi proposes to do
         myModel.setParam("BranchDir", -1)
         myModel.setParam("Heuristics", 0.001)
         myModel.setParam("MIPFocus", 1)
         if "mipgap" in self.optimization_parameters and self.optimization_parameters["mipgap"] is not None:
-            myModel.setParam("MIPGap", self.optimization_parameters["mipgap"]/100)
+            myModel.setParam("MIPGap", self.optimization_parameters["mipgap"] / 100)
         else:
             myModel.setParam("MIPGap", 0.05)
         if "timeout" in self.optimization_parameters and self.optimization_parameters["timeout"] is not None:
@@ -1026,7 +1184,7 @@ class ipEquilibriumWaterLevels:
         return waterHeightGreaterZero, activeNodes, solutionWaterHeight, auffangbeckenSolution, leitgraeben_solution, flow_through_nodes, handlungsbedarf
 
     def backwards_transformation_to_original_graph(self):
-        #self.flooded, self.activeNodes, self.waterHeight, self.auffangbecken_solution, self.leitgraeben_solution, self.flow_through_nodes, self.handlungsbedarf
+        # self.flooded, self.activeNodes, self.waterHeight, self.auffangbecken_solution, self.leitgraeben_solution, self.flow_through_nodes, self.handlungsbedarf
         for t in self.flooded:
             for n in self.originalGraph:
                 if n not in self.flooded[t]:
@@ -1044,8 +1202,8 @@ class ipEquilibriumWaterLevels:
 
         for n in self.originalGraph:
             if n not in self.flow_through_nodes and n != (-1, -1):
-                self.flow_through_nodes[n] = self.flow_through_nodes[self.mapping_representator_per_node[n]] * self.area[n] / self.cc_area[self.mapping_representator_per_node[n]]
-
+                self.flow_through_nodes[n] = self.flow_through_nodes[self.mapping_representator_per_node[n]] * \
+                                             self.area[n] / self.cc_area[self.mapping_representator_per_node[n]]
 
     def handOverFloodedNodesToDatabase(self):
         return self.flooded

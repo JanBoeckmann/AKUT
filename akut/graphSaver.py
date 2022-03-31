@@ -1,9 +1,9 @@
 import networkx as nx
 
+
 class GraphSaver:
     def __init__(self, graph):
         self.graph = graph
-
 
     def transform_node_names_to_string(self):
         node_name_mapping = dict()

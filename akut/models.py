@@ -4,7 +4,7 @@ from flask_login import UserMixin
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
 from datetime import datetime
 
-from akut import login_db, app
+from akut import login_db, app, login_manager
 
 
 class LoggingMiddleware(object):
@@ -22,6 +22,11 @@ class LoggingMiddleware(object):
         return self._app(environ, log_response)
 
 
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
+
+
 class User_Region(login_db.Model):
     __tablename__ = 'user_region'
     access = login_db.Column(login_db.Text, nullable=False, default='All')
@@ -35,25 +40,35 @@ class Messages(login_db.Model):
     id = login_db.Column(login_db.Integer, primary_key=True)
     user_to_id = login_db.Column(login_db.Integer, login_db.ForeignKey('user.id'), nullable=False)
     user_from_id = login_db.Column(login_db.Integer, login_db.ForeignKey('user.id'), nullable=False)
-    region_id = login_db.Column(login_db.Integer, login_db.ForeignKey('region.id'), nullable=False)
+    region_id = login_db.Column(login_db.Integer, login_db.ForeignKey('region.id'))
     date_associated = login_db.Column(login_db.DateTime, nullable=False, default=datetime.utcnow)
     type = login_db.Column(login_db.String, nullable=False)
     text = login_db.Column(login_db.String, default="")
 
     def __str__(self):
-        region = Region.query.filter_by(id=self.region_id).first()
-        if not region:  # Gelöschte Region
-            return 'Ignore Message'
-        region_name = region.name
-        user_name = User.query.filter_by(id=self.user_from_id).first().username
-        if not user_name:
+        if self.region_id:
+            region = Region.query.filter_by(id=self.region_id).first()
+            region_name = region.name
+        user = User.query.filter_by(id=self.user_from_id).first()
+        if not user:
             user_name = '[Gelöschter User]'
+        else:
+            user_name = user.username
         if self.type == "Freigegeben":
             return f'User "{user_name}" hat Ihnen die Region "{region_name}" am {str(self.date_associated)[0:9]}' \
                    f' freigegeben! {self.text}'
+        elif self.type == "Entfernt":
+            return f'User "{user_name}" hat die Region "{region_name}" am {str(self.date_associated)[0:9]}' \
+                   f' entfernt! {self.text}'
         elif self.type == "Admin abgegeben":
             return f'User "{user_name}" hat Ihnen den Admin der Region "{region_name}" am ' \
                    f'{str(self.date_associated)[0:9]} abgegeben! {self.text}'
+        elif self.type == "Username geändert":
+            return f'User "{user_name}" hat Ihren Namen am {str(self.date_associated)[0:9]} von "{self.text}" zu ' \
+                   f'"{User.query.filter_by(id=self.user_to_id).first().name}" geändert! '
+        elif self.type == "Regionenname geändert":
+            return f'User "{user_name}" hat den Namen der Region "{self.text}" am ' \
+                   f'{str(self.date_associated)[0:9]} zu "{region_name}" geändert!'
 
 
 class User(login_db.Model, UserMixin):

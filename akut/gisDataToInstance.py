@@ -1,9 +1,8 @@
-import csv
-import os
+import math
 import numpy as np
 import networkx as nx
 import matplotlib as plt
-import math
+
 
 class gisDataToInstance:
     def __init__(self, geosteps, gisData):
@@ -37,11 +36,11 @@ class gisDataToInstance:
 
         myGraph = nx.DiGraph()
 
-        #adding the nodes
+        # adding the nodes
         for n in self.positionAndGeodesicHeight.keys():
             myGraph.add_node(n)
 
-        #adding the edges
+        # adding the edges
         for n in self.positionAndGeodesicHeight.keys():
             addEdge(n, (n[0] - 1, n[1]))
             addEdge(n, (n[0] + 1, n[1]))
@@ -55,23 +54,23 @@ class gisDataToInstance:
         for n in self.originalGraph.nodes:
             sumOfDifferencesInGeodesicHeightsOverOutgoingArcs = 0
             for v in self.originalGraph.successors(n):
-                sumOfDifferencesInGeodesicHeightsOverOutgoingArcs = sumOfDifferencesInGeodesicHeightsOverOutgoingArcs + (self.positionAndGeodesicHeight[n] - self.positionAndGeodesicHeight[v])
+                sumOfDifferencesInGeodesicHeightsOverOutgoingArcs = sumOfDifferencesInGeodesicHeightsOverOutgoingArcs + (
+                            self.positionAndGeodesicHeight[n] - self.positionAndGeodesicHeight[v])
             if sumOfDifferencesInGeodesicHeightsOverOutgoingArcs > 0:
                 for v in self.originalGraph.successors(n):
-                    ratios[(n, v)] = (self.positionAndGeodesicHeight[n] - self.positionAndGeodesicHeight[v]) / sumOfDifferencesInGeodesicHeightsOverOutgoingArcs
+                    ratios[(n, v)] = (self.positionAndGeodesicHeight[n] - self.positionAndGeodesicHeight[
+                        v]) / sumOfDifferencesInGeodesicHeightsOverOutgoingArcs
             else:
                 for v in self.originalGraph.successors(n):
-                    ratios[(n, v)] = 1/len(self.originalGraph.successors(n))
+                    ratios[(n, v)] = 1 / len(self.originalGraph.successors(n))
         return ratios
 
     def createAreas(self):
         areas = dict()
         for n in self.originalGraph.nodes:
-            #normed to 25 x 25 grid
+            # normed to 25 x 25 grid
             areas[n] = math.pow(self.geosteps, 2) / 625
         return areas
-
-
 
     def drawGraph(self):
         pos = dict()

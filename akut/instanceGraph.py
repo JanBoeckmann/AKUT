@@ -1,6 +1,5 @@
-import networkx as nx
 import numpy as np
-import matplotlib as plt
+
 from akut.ipEquilibriumWaterLevels import *
 from akut.linearEquationSolverForFlows import *
 
@@ -11,13 +10,15 @@ from akut.linearEquationSolverForFlows import *
             geodesicHeight: dictionary with ids as keys and geodesic height as value
 '''
 
+
 class instanceGraph:
-    def __init__(self,region, nodesPosition, nodesRelevant, geodesigHeight, massnahmenOnNode, gridSize, allAuffangbecken, allLeitgraeben, all_buildings, rain, timeSteps, which_DGM_from):
+    def __init__(self, region, nodesPosition, nodesRelevant, geodesigHeight, massnahmenOnNode, gridSize,
+                 allAuffangbecken, allLeitgraeben, all_buildings, rain, timeSteps, which_DGM_from):
         self.region = region
         self.nodesPosition = nodesPosition
         self.position_to_id = self.compute_position_to_id()
         self.nodesRelevant = nodesRelevant
-        geodesigHeight.update((x, y/1000) for x, y in geodesigHeight.items())
+        geodesigHeight.update((x, y / 1000) for x, y in geodesigHeight.items())
         self.geodesicHeight = geodesigHeight
         self.massnahmenOnNode = massnahmenOnNode
         self.gridSize = gridSize
@@ -30,7 +31,7 @@ class instanceGraph:
         self.timeSteps = 1
         self.which_DGM_from = which_DGM_from
         self.fullGraph = self.computeFullGraph()
-        #self.draw_graph()
+        # self.draw_graph()
 
     def compute_position_to_id(self):
         position_to_id = dict()
@@ -78,37 +79,49 @@ class instanceGraph:
             while nodes_to_check:
                 currently_checked_node = nodes_to_check.pop()
                 current_node_coordinates = (currently_checked_node[0], currently_checked_node[1])
-                if check_if_node_exists_and_if_it_is_in_correct_resolution(current_node_coordinates, currently_checked_node[3]):
+                if check_if_node_exists_and_if_it_is_in_correct_resolution(current_node_coordinates,
+                                                                           currently_checked_node[3]):
                     addSingleEdgeForNodePair(node, current_node_coordinates)
                 else:
                     if currently_checked_node[2] == "E" and currently_checked_node[3] == 25:
                         for i in range(5):
-                            nodes_to_check.append((currently_checked_node[0] - 10, currently_checked_node[1] + 10 - 5 * i, "E", 5))
+                            nodes_to_check.append(
+                                (currently_checked_node[0] - 10, currently_checked_node[1] + 10 - 5 * i, "E", 5))
                     elif currently_checked_node[2] == "E" and currently_checked_node[3] == 5:
                         for i in range(5):
-                            nodes_to_check.append((currently_checked_node[0] - 2, currently_checked_node[1] + 2 - 1 * i, "E", 1))
+                            nodes_to_check.append(
+                                (currently_checked_node[0] - 2, currently_checked_node[1] + 2 - 1 * i, "E", 1))
                     elif currently_checked_node[2] == "W" and currently_checked_node[3] == 25:
                         for i in range(5):
-                            nodes_to_check.append((currently_checked_node[0] + 10, currently_checked_node[1] + 10 - 5 * i, "W", 5))
+                            nodes_to_check.append(
+                                (currently_checked_node[0] + 10, currently_checked_node[1] + 10 - 5 * i, "W", 5))
                     elif currently_checked_node[2] == "W" and currently_checked_node[3] == 5:
                         for i in range(5):
-                            nodes_to_check.append((currently_checked_node[0] + 2, currently_checked_node[1] + 2 - 1 * i, "W", 1))
+                            nodes_to_check.append(
+                                (currently_checked_node[0] + 2, currently_checked_node[1] + 2 - 1 * i, "W", 1))
                     elif currently_checked_node[2] == "N" and currently_checked_node[3] == 25:
                         for i in range(5):
-                            nodes_to_check.append((currently_checked_node[0] + 10 - 5 * i, currently_checked_node[1] - 10, "N", 5))
+                            nodes_to_check.append(
+                                (currently_checked_node[0] + 10 - 5 * i, currently_checked_node[1] - 10, "N", 5))
                     elif currently_checked_node[2] == "N" and currently_checked_node[3] == 5:
                         for i in range(5):
-                            nodes_to_check.append((currently_checked_node[0] + 2 - 1 * i, currently_checked_node[1] - 2, "N", 1))
+                            nodes_to_check.append(
+                                (currently_checked_node[0] + 2 - 1 * i, currently_checked_node[1] - 2, "N", 1))
                     elif currently_checked_node[2] == "S" and currently_checked_node[3] == 25:
                         for i in range(5):
-                            nodes_to_check.append((currently_checked_node[0] + 10 - 5 * i, currently_checked_node[1] + 10, "S", 5))
+                            nodes_to_check.append(
+                                (currently_checked_node[0] + 10 - 5 * i, currently_checked_node[1] + 10, "S", 5))
                     elif currently_checked_node[2] == "S" and currently_checked_node[3] == 5:
                         for i in range(5):
-                            nodes_to_check.append((currently_checked_node[0] + 2 - 1 * i, currently_checked_node[1] + 2, "S", 1))
+                            nodes_to_check.append(
+                                (currently_checked_node[0] + 2 - 1 * i, currently_checked_node[1] + 2, "S", 1))
 
         G = nx.DiGraph()
         for indexId in self.nodesPosition:
-            G.add_node((self.nodesPosition[indexId][0], self.nodesPosition[indexId][1]), utm=(self.nodesPosition[indexId][0], self.nodesPosition[indexId][1]), relevant=self.nodesRelevant[indexId], nodeId=indexId, connectedToRelevantNodes=0, geodesicHeight=self.geodesicHeight[indexId], massnahmenOnNode=self.massnahmenOnNode[indexId])
+            G.add_node((self.nodesPosition[indexId][0], self.nodesPosition[indexId][1]),
+                       utm=(self.nodesPosition[indexId][0], self.nodesPosition[indexId][1]),
+                       relevant=self.nodesRelevant[indexId], nodeId=indexId, connectedToRelevantNodes=0,
+                       geodesicHeight=self.geodesicHeight[indexId], massnahmenOnNode=self.massnahmenOnNode[indexId])
 
         allNodeIds = nx.get_node_attributes(G, "nodeId")
 
@@ -121,7 +134,8 @@ class instanceGraph:
         test_graph = self.fullGraph.copy()
         nodes_to_iterate_over = self.fullGraph.nodes()
         for node in nodes_to_iterate_over:
-            if self.which_DGM_from[self.position_to_id[node]] == 25 or self.which_DGM_from[self.position_to_id[node]] == 5:
+            if self.which_DGM_from[self.position_to_id[node]] == 25 or self.which_DGM_from[
+                self.position_to_id[node]] == 5:
                 test_graph.remove_node(node)
 
         position = {}
@@ -132,11 +146,11 @@ class instanceGraph:
         plt.pyplot.show()
 
     def computeRelevantGraph(self):
-        nodesQueue = [x for x,y in self.fullGraph.nodes(data=True) if y["relevant"] == 1]
+        nodesQueue = [x for x, y in self.fullGraph.nodes(data=True) if y["relevant"] == 1]
         relevantGraph = self.fullGraph.copy()
         nodeAttributes = nx.get_node_attributes(self.fullGraph, "relevant")
         nodeConnected = nx.get_node_attributes(self.fullGraph, "connectedToRelevantNodes")
-        #Fill node Attributes (relevant)
+        # Fill node Attributes (relevant)
         while len(nodesQueue) > 0:
             actualNode = nodesQueue.pop()
             for child in self.fullGraph.successors(actualNode):
@@ -145,9 +159,9 @@ class instanceGraph:
                     nodeAttributes[child] = 1
         nx.set_node_attributes(relevantGraph, nodeAttributes, "relevant")
 
-        #fill Connected
+        # fill Connected
         reversedGraph = self.fullGraph.reverse(copy=True)
-        nodesRelevantQueue = [x for x,y in relevantGraph.nodes(data=True) if y["relevant"] == 1]
+        nodesRelevantQueue = [x for x, y in relevantGraph.nodes(data=True) if y["relevant"] == 1]
         for relevantNode in nodesRelevantQueue:
             nodeConnected[relevantNode] = 1
         while len(nodesRelevantQueue) > 0:
@@ -162,8 +176,8 @@ class instanceGraph:
 
     def computeListOfRelevantAndConnectedNodes(self):
         relevantGraph = self.computeRelevantGraph()
-        relevantNodes = [x for x,y in relevantGraph.nodes(data=True) if y["relevant"] == 1]
-        connectedNodes = [x for x,y in relevantGraph.nodes(data=True) if y["connectedToRelevantNodes"] == 1]
+        relevantNodes = [x for x, y in relevantGraph.nodes(data=True) if y["relevant"] == 1]
+        connectedNodes = [x for x, y in relevantGraph.nodes(data=True) if y["connectedToRelevantNodes"] == 1]
         return relevantNodes, connectedNodes
 
     def computeInstanceGraph(self):
@@ -209,26 +223,35 @@ class instanceGraph:
             total_geodesic_height_difference = 0
             total_proportion = 0
             for successor in graphForIP.successors(actualNode):
-                total_geodesic_height_difference = total_geodesic_height_difference + self.geodesicHeight[self.position_to_id[actualNode]] - self.geodesicHeight[self.position_to_id[successor]]
+                total_geodesic_height_difference = total_geodesic_height_difference + self.geodesicHeight[
+                    self.position_to_id[actualNode]] - self.geodesicHeight[self.position_to_id[successor]]
             for successor in graphForIP.successors(actualNode):
                 if total_geodesic_height_difference > 0:
-                    edgeProportion[(actualNode, successor)] = (self.geodesicHeight[self.position_to_id[actualNode]] - self.geodesicHeight[self.position_to_id[successor]]) / total_geodesic_height_difference
-                    if self.geodesicHeight[self.position_to_id[actualNode]] == self.geodesicHeight[self.position_to_id[successor]]:
-                        edgeProportion[(actualNode, successor)] = 0.01 #if heights are exactly the same, we allow for a very small flow such that we won't divide by 0 in the IP
+                    edgeProportion[(actualNode, successor)] = (self.geodesicHeight[self.position_to_id[actualNode]] -
+                                                               self.geodesicHeight[self.position_to_id[
+                                                                   successor]]) / total_geodesic_height_difference
+                    if self.geodesicHeight[self.position_to_id[actualNode]] == self.geodesicHeight[
+                        self.position_to_id[successor]]:
+                        edgeProportion[(actualNode,
+                                        successor)] = 0.01  # if heights are exactly the same, we allow for a very small flow such that we won't divide by 0 in the IP
                 else:
                     edgeProportion[(actualNode, successor)] = 1 / numberOfOutEdges
-                if self.which_DGM_from[self.position_to_id[actualNode]] > self.which_DGM_from[self.position_to_id[successor]]:
-                    edgeProportion[(actualNode, successor)] = edgeProportion[(actualNode, successor)] * self.which_DGM_from[self.position_to_id[successor]] / self.which_DGM_from[self.position_to_id[actualNode]]
+                if self.which_DGM_from[self.position_to_id[actualNode]] > self.which_DGM_from[
+                    self.position_to_id[successor]]:
+                    edgeProportion[(actualNode, successor)] = edgeProportion[(actualNode, successor)] * \
+                                                              self.which_DGM_from[self.position_to_id[successor]] / \
+                                                              self.which_DGM_from[self.position_to_id[actualNode]]
                 total_proportion = total_proportion + edgeProportion[(actualNode, successor)]
             for successor in graphForIP.successors(actualNode):
                 edgeProportion[(actualNode, successor)] = edgeProportion[(actualNode, successor)] / total_proportion
             numberOfConcatenatedNodes[actualNode] = 1
 
-
-        graphForIP.add_node((-1, -1)) #supernode
+        graphForIP.add_node((-1, -1))  # supernode
         for boundaryNode in boundaryNodes:
             graphForIP.add_edge((-1, -1), boundaryNode)
-            edgeProportion[((-1, -1), boundaryNode)] = boundaryNumberOfInflowNodes[boundaryNode] / totalNumberOfInflowIntoBoundary * self.which_DGM_from[self.position_to_id[boundaryNode]] / 25
+            edgeProportion[((-1, -1), boundaryNode)] = boundaryNumberOfInflowNodes[
+                                                           boundaryNode] / totalNumberOfInflowIntoBoundary * \
+                                                       self.which_DGM_from[self.position_to_id[boundaryNode]] / 25
 
         nx.set_edge_attributes(graphForIP, edgeProportion, 'edgeProportion')
         geodesicHeight = nx.get_node_attributes(graphForIP, 'geodesicHeight')
@@ -246,12 +269,16 @@ class instanceGraph:
 
         return graphForIP
 
-    def callIPWithEquilibriumWaterLevels(self, graphForIP, initialSolution, optimization_parameters, threshold_for_gefahrenklasse, massnahmen_kataster, all_kataster):
+    def callIPWithEquilibriumWaterLevels(self, graphForIP, initialSolution, optimization_parameters,
+                                         threshold_for_gefahrenklasse, massnahmen_kataster, all_kataster):
         ratios = nx.get_edge_attributes(graphForIP, "edgeProportion")
         geodesicHeight = nx.get_node_attributes(graphForIP, "geodesicHeight")
         area = nx.get_node_attributes(graphForIP, "area")
         massnahmenOnNode = nx.get_node_attributes(graphForIP, "massnahmenOnNode")
-        myIP = ipEquilibriumWaterLevels(ratios, geodesicHeight, area, self.timeSteps, self.rain, massnahmenOnNode, self.allAuffangbecken, self.allLeitgraeben, self.all_buildings, optimization_parameters, initialSolution, threshold_for_gefahrenklasse, massnahmen_kataster, all_kataster)
+        myIP = ipEquilibriumWaterLevels(ratios, geodesicHeight, area, self.timeSteps, self.rain, massnahmenOnNode,
+                                        self.allAuffangbecken, self.allLeitgraeben, self.all_buildings,
+                                        optimization_parameters, initialSolution, threshold_for_gefahrenklasse,
+                                        massnahmen_kataster, all_kataster)
         flooded = myIP.handOverFloodedNodesToDatabase()
         waterHeight = myIP.handOverWaterHeightToDatabase()
         auffangbecken_solution = myIP.handOverAuffangbeckenHeightToDatabase()
@@ -277,8 +304,10 @@ class instanceGraph:
             for n in graphWithGeodesicHeightAfterAuffangbeckenBuilt.nodes:
                 if n != (-1, -1):
                     for massnahme in massnahmenOnNode[n]:
-                        if massnahmenOnNode[n][massnahme]["type"] == "auffangbecken" and buildAuffangbecken[massnahmenOnNode[n][massnahme]["id"]] == 1:
-                            geodesicHeight[n] = geodesicHeight[n] - self.allAuffangbecken[massnahmenOnNode[n][massnahme]["id"]]["depth"]
+                        if massnahmenOnNode[n][massnahme]["type"] == "auffangbecken" and buildAuffangbecken[
+                            massnahmenOnNode[n][massnahme]["id"]] == 1:
+                            geodesicHeight[n] = geodesicHeight[n] - \
+                                                self.allAuffangbecken[massnahmenOnNode[n][massnahme]["id"]]["depth"]
             nx.set_node_attributes(graphWithGeodesicHeightAfterAuffangbeckenBuilt, geodesicHeight, "geodesicHeight")
 
         def recomputeEdgeDirection():
@@ -339,7 +368,8 @@ class instanceGraph:
             actualLeaves = getleaves(G)
             leavesFloodingTimes = {}
             for l in actualLeaves:
-                floodingTime = (geodesicHeight[getLowestParent(G, l)] - geodesicHeight[l] - waterAmounts[i - 1][l] / modArea[l]) * modArea[l] / flows[i][l]
+                floodingTime = (geodesicHeight[getLowestParent(G, l)] - geodesicHeight[l] - waterAmounts[i - 1][l] /
+                                modArea[l]) * modArea[l] / flows[i][l]
                 leavesFloodingTimes[l] = floodingTime
             firstFloodedLeave = min(leavesFloodingTimes, key=leavesFloodingTimes.get)
             return leavesFloodingTimes, firstFloodedLeave
@@ -406,7 +436,9 @@ class instanceGraph:
                 fractionOfLastStep = timeLeftInLastStep / floodingTimes[-1]
                 lastEntry = waterAmounts[numberOfFloodedNodes + 1]
                 for key in lastEntry:
-                    waterAmounts[numberOfFloodedNodes + 1][key] = waterAmounts[numberOfFloodedNodes][key] + (waterAmounts[numberOfFloodedNodes + 1][key] - waterAmounts[numberOfFloodedNodes][key]) * fractionOfLastStep
+                    waterAmounts[numberOfFloodedNodes + 1][key] = waterAmounts[numberOfFloodedNodes][key] + (
+                                waterAmounts[numberOfFloodedNodes + 1][key] - waterAmounts[numberOfFloodedNodes][
+                            key]) * fractionOfLastStep
 
         def computeWaterHeightInOriginalGraph():
             lastWaterAmounts = waterAmounts[len(waterAmounts) - 1]
@@ -498,8 +530,8 @@ class instanceGraph:
         waterHeight = computeWaterHeightInOriginalGraph()
         # floodedInOriginalGraph = computeFloodedInOriginalGraph()
 
-        #now recalculate flows from scratch with information about flooded nodes
+        # now recalculate flows from scratch with information about flooded nodes
         floodedNodes.remove(lastFloodedLeave)
-        #equationSolver = linearEquationSolverForFlows(graphWithGeodesicHeightAfterAuffangbeckenBuilt, waterHeight, self.rain, self.timeSteps, self.gridSize)
-        #waterHeight = equationSolver.solveLinearEquationSystem()
+        # equationSolver = linearEquationSolverForFlows(graphWithGeodesicHeightAfterAuffangbeckenBuilt, waterHeight, self.rain, self.timeSteps, self.gridSize)
+        # waterHeight = equationSolver.solveLinearEquationSystem()
         return floodingTimes, waterAmounts, modGraph, modArea, floodedNodes, waterHeight

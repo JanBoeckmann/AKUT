@@ -1,5 +1,5 @@
-from akut import app
 from akut.models import LoggingMiddleware
+from akut import app
 
 if __name__ == "__main__":
     app.wsgi_app = LoggingMiddleware(app.wsgi_app)
@@ -12,7 +12,7 @@ TODOs:
 1.) Berechnungen:
     2: Key-Error instanceGraph
     4: Überprüfen
-2.) Lösungen überprüfe
+2.) Lösungen überprüfen
 3.) Todo bei ähnlichen Regionennamen
 4.) Todo bei Mailserver
 5.) Doku

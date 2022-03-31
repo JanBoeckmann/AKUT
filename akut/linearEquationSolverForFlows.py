@@ -1,6 +1,8 @@
-from gekko import GEKKO
 import networkx as nx
 import gurobipy as gurobi
+
+from gekko import GEKKO
+
 
 class linearEquationSolverForFlows:
     def __init__(self, graph, waterHeight, rain, timeSteps, gridSize):
@@ -38,29 +40,35 @@ class linearEquationSolverForFlows:
 
     def solveLinearEquationSystem(self):
         def declareVariables():
-            #flows
+            # flows
             for e in self.graphWithGeodesicHeight.edges:
                 if self.fullEdge[e] == 0:
-                    flows[e] = myModel.addVar(lb=0.0, vtype=gurobi.GRB.CONTINUOUS, name="f_" + str(e[0]) + "_" + str(e[1]))
+                    flows[e] = myModel.addVar(lb=0.0, vtype=gurobi.GRB.CONTINUOUS,
+                                              name="f_" + str(e[0]) + "_" + str(e[1]))
                 else:
-                    flows[e] = myModel.addVar(lb=-99999, vtype=gurobi.GRB.CONTINUOUS, name="f_" + str(e[0]) + "_" + str(e[1]))
+                    flows[e] = myModel.addVar(lb=-99999, vtype=gurobi.GRB.CONTINUOUS,
+                                              name="f_" + str(e[0]) + "_" + str(e[1]))
 
-            #excess
+            # excess
             for n in self.graphWithGeodesicHeight.nodes:
                 excess[n] = myModel.addVar(lb=0.0, vtype=gurobi.GRB.CONTINUOUS, name="F_" + str(n))
 
-            #waterHeight
+            # waterHeight
             for n in self.graphWithGeodesicHeight.nodes:
                 waterHeight[n] = myModel.addVar(lb=0.0, vtype=gurobi.GRB.CONTINUOUS, name="h_" + str(n))
 
         def addConstraints():
-            #constraint for the excess
+            # constraint for the excess
             for n in self.graphWithGeodesicHeight.nodes:
-                myModel.addConstr(excess[n], gurobi.GRB.EQUAL, gurobi.quicksum(flows[e] for e in self.graphWithGeodesicHeight.in_edges(n)) - gurobi.quicksum(flows[e] for e in self.graphWithGeodesicHeight.out_edges(n)) + self.rain * self.timeSteps * self.area[n], name="excess_" + str(n))
+                myModel.addConstr(excess[n], gurobi.GRB.EQUAL, gurobi.quicksum(
+                    flows[e] for e in self.graphWithGeodesicHeight.in_edges(n)) - gurobi.quicksum(
+                    flows[e] for e in self.graphWithGeodesicHeight.out_edges(n)) + self.rain * self.timeSteps *
+                                  self.area[n], name="excess_" + str(n))
 
             # constraint for water height
             for n in self.graphWithGeodesicHeight.nodes:
-                myModel.addConstr(waterHeight[n], gurobi.GRB.EQUAL, excess[n] / self.area[n], name="ConnectWaterHeightToWaterAmount_" + str(n))
+                myModel.addConstr(waterHeight[n], gurobi.GRB.EQUAL, excess[n] / self.area[n],
+                                  name="ConnectWaterHeightToWaterAmount_" + str(n))
 
             # Ratios of Flows
             for n in self.graphWithGeodesicHeight.nodes:
@@ -71,21 +79,30 @@ class linearEquationSolverForFlows:
                 if len(successors) >= 2:
                     for p1 in range(len(successors)):
                         for p2 in range(p1 + 1, len(successors)):
-                            myModel.addConstr(flows[(n, successors[p1])] - (self.ratios[(n, successors[p1])] / self.ratios[(n, successors[p2])] * flows[(n, successors[p2])]), gurobi.GRB.LESS_EQUAL, 0, name="flowDistribution")
-                            myModel.addConstr(flows[(n, successors[p2])] - (self.ratios[(n, successors[p2])] / self.ratios[(n, successors[p1])] * flows[(n, successors[p1])]), gurobi.GRB.LESS_EQUAL, 0, name="flowDistribution")
+                            myModel.addConstr(flows[(n, successors[p1])] - (
+                                        self.ratios[(n, successors[p1])] / self.ratios[(n, successors[p2])] * flows[
+                                    (n, successors[p2])]), gurobi.GRB.LESS_EQUAL, 0, name="flowDistribution")
+                            myModel.addConstr(flows[(n, successors[p2])] - (
+                                        self.ratios[(n, successors[p2])] / self.ratios[(n, successors[p1])] * flows[
+                                    (n, successors[p1])]), gurobi.GRB.LESS_EQUAL, 0, name="flowDistribution")
 
-            #constraints for full arcs
+            # constraints for full arcs
             for e in self.graphWithGeodesicHeight.edges:
                 if self.fullEdge[e] == 1:
-                    myModel.addConstr(self.geodesicHeight[e[0]] + waterHeight[e[0]] - (self.geodesicHeight[e[1]] + waterHeight[e[1]]), gurobi.GRB.EQUAL, 0, name="effectsOnFullArcForFlows")
+                    myModel.addConstr(
+                        self.geodesicHeight[e[0]] + waterHeight[e[0]] - (self.geodesicHeight[e[1]] + waterHeight[e[1]]),
+                        gurobi.GRB.EQUAL, 0, name="effectsOnFullArcForFlows")
 
             for e in self.graphWithGeodesicHeight.edges:
-                myModel.addConstr(self.geodesicHeight[e[0]] + waterHeight[e[0]] - (self.geodesicHeight[e[1]] + waterHeight[e[1]]), gurobi.GRB.GREATER_EQUAL, 0, name="effectsOnFullArcForFlows")
+                myModel.addConstr(
+                    self.geodesicHeight[e[0]] + waterHeight[e[0]] - (self.geodesicHeight[e[1]] + waterHeight[e[1]]),
+                    gurobi.GRB.GREATER_EQUAL, 0, name="effectsOnFullArcForFlows")
 
-            #constraints for non-full arcs
+            # constraints for non-full arcs
             for e in self.graphWithGeodesicHeight.edges:
                 if self.fullEdge[e] == 0:
-                    myModel.addConstr(waterHeight[e[0]], gurobi.GRB.EQUAL, 0, name="noWaterStoredIfThereIsStillAnActiveOutArc")
+                    myModel.addConstr(waterHeight[e[0]], gurobi.GRB.EQUAL, 0,
+                                      name="noWaterStoredIfThereIsStillAnActiveOutArc")
 
         def putWaterHeightIntoDictionary():
             newDict = {}
@@ -133,7 +150,8 @@ class linearEquationSolverForFlows:
             newDict["excess"] = solutionExcess
             newDict["flows"] = solutionFlows
             newDict["activeArcs"] = solutionActiveAcrs
-            newDict["fullArc"] = self.fullEdge #careful: when direction of arc has reversed, will have to reverse this as well to hand it over to gurobi
+            newDict[
+                "fullArc"] = self.fullEdge  # careful: when direction of arc has reversed, will have to reverse this as well to hand it over to gurobi
             newDict["geodesicHeight"] = self.geodesicHeight
             return newDict
 
@@ -152,11 +170,10 @@ class linearEquationSolverForFlows:
         myModel.setParam("Presolve", 0)
         myModel.feasRelaxS(1, False, False, True)
         myModel.optimize()
-        #myModel.computeIIS()
-        #myModel.write(filename="myModelForSolvingAnLGS.ilp")
+        # myModel.computeIIS()
+        # myModel.write(filename="myModelForSolvingAnLGS.ilp")
 
         print("GRB.OPTIMAL: ", gurobi.GRB.OPTIMAL)
-
 
         if gurobi.GRB.OPTIMAL == 3:
             initialSolution = compute_return_dict_if_infeasible()
